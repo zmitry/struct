@@ -1,9 +1,18 @@
 class HeapNode {
-  constructor(public weight: number, public children: HeapNode[] = []) {}
+  constructor(
+    public weight: number,
+    public left: HeapNode | null = null,
+    public sibling: HeapNode | null = null
+  ) {}
 }
 
 export function addChild(currNode: HeapNode, newNode: HeapNode) {
-  currNode.children.push(newNode);
+  if (currNode.left === null) {
+    currNode.left = newNode;
+  } else {
+    newNode.sibling = currNode.left;
+    currNode.left = newNode;
+  }
   return currNode;
 }
 
@@ -13,14 +22,20 @@ export function merge(A: HeapNode | null, B: HeapNode | null): HeapNode | null {
   return A.weight < B.weight ? addChild(A, B) : addChild(B, A);
 }
 
-function mergePairs(roots: HeapNode[]): HeapNode | null {
-  if (roots.length === 0) {
+function mergePairs(root: HeapNode | null): HeapNode | null {
+  if (!root?.left || !root?.sibling) {
     return null;
-  } else if (roots.length === 1) {
-    return roots[0];
+  } else if (root.sibling && !root.sibling.sibling) {
+    return root.sibling;
   } else {
-    const root = merge(roots[0], roots[1]);
-    return merge(root, mergePairs(roots.slice(2)));
+    let node1 = root?.sibling;
+    root = node1;
+    let node2 = root?.sibling;
+    root = node2;
+    let rest = root?.sibling;
+
+    const newRoot = merge(node1, node2);
+    return merge(newRoot, mergePairs(rest));
   }
 }
 
@@ -31,7 +46,7 @@ export class Heap {
       return null;
     }
     const removed = this.root.weight;
-    this.root = mergePairs(this.root.children);
+    this.root = mergePairs(this.root.left as HeapNode);
     return removed;
   }
   push(value: number) {
