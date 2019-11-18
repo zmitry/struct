@@ -1,3 +1,4 @@
+// type for basic graph implementation
 export interface IOrientedGraph<N, E> {
   edges(): GraphEdge<E>[];
   nodes(): Array<[string, N]>;
@@ -17,23 +18,7 @@ export interface IOrientedGraph<N, E> {
   nodesCount(): number;
 }
 
-function upsertSet<K, V>(map: Map<K, Set<V>>, key: K, value: V) {
-  let old = map.get(key);
-  if (!old) {
-    map.set(
-      key,
-      new Set<V>([value])
-    );
-  } else {
-    map.set(key, old.add(value));
-  }
-}
-
 type GraphEdge<T> = { to: string; from: string; value: T };
-
-function edgeToString(from: string, to: string) {
-  return `edge-${from}-${to}`;
-}
 
 export class OrientedGraph<N, E = any> implements IOrientedGraph<N, E> {
   private inNodes = new Map<string, Set<string>>();
@@ -146,4 +131,64 @@ export class OrientedGraph<N, E = any> implements IOrientedGraph<N, E> {
   nodesCount() {
     return this.nodesMap.size;
   }
+  // walk over graph nodes starting from rootNodes,
+  // you can pass additional parameters to change iteration from preorder to postorder
+  // https://en.wikipedia.org/wiki/Tree_traversal
+  reduce<Acc>(
+    rootNodes: string[],
+    fn: <V>(ac: Acc, v: V) => Acc,
+    acc: Acc,
+    order = false
+  ) {
+    var visited = new Set<string>();
+    rootNodes.forEach(key => {
+      if (!this.hasNode(key)) {
+        throw new Error('Graph does not have node: ' + key);
+      }
+    });
+    rootNodes.forEach(key => {
+      acc = doReduce(key, order, visited, n => this.successors(n), fn, acc);
+    });
+    return acc;
+  }
+}
+
+function doReduce(
+  v: string,
+  postorder: boolean,
+  visited: Set<string>,
+  navigation: (f: string) => string[],
+  fn: (...args: any) => any,
+  acc: any
+) {
+  if (!visited.has(v)) {
+    visited.add(v);
+
+    if (!postorder) {
+      acc = fn(acc, v);
+    }
+    navigation(v).forEach(w => {
+      acc = doReduce(w, postorder, visited, navigation, fn, acc);
+    });
+    if (postorder) {
+      acc = fn(acc, v);
+    }
+  }
+  return acc;
+}
+
+function upsertSet<K, V>(map: Map<K, Set<V>>, key: K, value: V) {
+  let old = map.get(key);
+  if (!old) {
+    map.set(
+      key,
+      new Set<V>([value])
+    );
+  } else {
+    map.set(key, old.add(value));
+  }
+}
+
+function edgeToString(from: string, to: string) {
+  return `edge-${from}-${to}`;
 }
