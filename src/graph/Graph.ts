@@ -1,10 +1,95 @@
 import { upsertSet } from './helpers';
 
 export const meta = Symbol();
+interface IBaseGraphApi<N, E> {
+  /**
+   * get list of all edges
+   */
+  edges(): GraphEdge<E>[];
+  /**
+   * get list of all nodes
+   */
+  nodes(): Array<[string, N]>;
+  hasNode(node: string): boolean;
+  /**
+   *  s
+   * @param node node key
+   * @param value optional value associated with node
+   */
+  setNode(node: string, value?: N): boolean;
+  removeNode(node: string): boolean;
+  hasEdge(from: string, to: string): boolean;
+  /**
+   *
+   * @param from node key
+   * @param to  node key
+   * @param value optional value associated edge
+   */
+  setEdge(from: string, to: string, value?: E): void;
+  /**
+   * it will remove edges but it won't remove nodes
+   */
+  removeEdge(from: string, to: string, value?: E): boolean;
+  edgesCount(): number;
+  /**
+   *
+   * @param node node key
+   * @returns value associated with node
+   */
+  getNodeValue(node: string): N | undefined;
+  getEdgeValue(from: string, to: String): E | undefined;
+  removeNodeValue(node: string): boolean;
+  removeEdgeByObj(edge: GraphEdge<E>): boolean;
+  nodesCount(): number;
+}
+export interface IUndirectedGraph<N, E> extends IBaseGraphApi<N, E> {
+  /**
+   *  list of all nodes connected with provided key
+   */
+  neighbors(node: string): string[];
+  [meta]?: {
+    directed: boolean;
+  };
+}
+// type for basic graph implementation
+export interface IDirectedGraph<N, E> extends IBaseGraphApi<N, E> {
+  /**
+   * list of nodes without incoming edges
+   */
+  sources(): string[];
+  /**
+   * list of nodes without outgoing edges
+   */
+  sinks(): string[];
+  /**
+   * list of nodes without  edges
+   */
+  orphans(): string[];
+  /**
+   * list of incoming edges for particular node
+   * @param n node key
+   */
+  predecessors(node: string): string[];
+  /**
+   * list of outgoing edges for particular node
+   */
+  successors(node: string): string[];
+  /**
+   *  predecessors and successors
+   */
+  neighbors(node: string): string[];
+  [meta]?: {
+    directed: boolean;
+  };
+}
+
+type GraphEdge<T> = { to: string; from: string; value: T };
+
 type Events = {
   onAddNode: (k: string) => void;
   onRemoveNode: (k: string) => void;
 };
+
 function createBaseGraph<N, E>(events: Events) {
   const nodesMap = new Map<string, N>();
   const edgesMap = new Map<string, GraphEdge<E>>();
@@ -104,27 +189,6 @@ function createBaseGraph<N, E>(events: Events) {
   return graph;
 }
 
-export interface IUndirectedGraph<N, E> {
-  edges(): GraphEdge<E>[];
-  nodes(): Array<[string, N]>;
-  hasNode(v: string): boolean;
-  setNode(node: string, value?: N): boolean;
-  removeNode(node: string): boolean;
-  neighbors(n: string): string[];
-  hasEdge(from: string, to: string): boolean;
-  setEdge(from: string, to: string, value?: E): void;
-  removeEdge(from: string, to: string, value?: E): boolean;
-  edgesCount(): number;
-  getNodeValue(node: string): N | undefined;
-  getEdgeValue(from: string, to: String): E | undefined;
-  removeNodeValue(node: string): boolean;
-  removeEdgeByObj(edge: GraphEdge<E>): boolean;
-  nodesCount(): number;
-  [meta]?: {
-    directed: boolean;
-  };
-}
-
 export function createGraph<N, E>(events: Events) {
   const nodesEdges = new Map<string, Set<string>>();
   const base = createBaseGraph<N, E>(events);
@@ -167,34 +231,7 @@ export function createGraph<N, E>(events: Events) {
   };
   return graph;
 }
-// type for basic graph implementation
-export interface IDirectedGraph<N, E> {
-  edges(): GraphEdge<E>[];
-  nodes(): Array<[string, N]>;
-  sources(): string[];
-  sinks(): string[];
-  orphans(): string[];
-  hasNode(v: string): boolean;
-  setNode(node: string, value?: N): boolean;
-  removeNode(node: string): boolean;
-  predecessors(n: string): string[];
-  successors(n: string): string[];
-  neighbors(n: string): string[];
-  hasEdge(from: string, to: string): boolean;
-  setEdge(from: string, to: string, value?: E): void;
-  removeEdge(from: string, to: string, value?: E): boolean;
-  edgesCount(): number;
-  getNodeValue(node: string): N | undefined;
-  getEdgeValue(from: string, to: String): E | undefined;
-  removeNodeValue(node: string): boolean;
-  removeEdgeByObj(edge: GraphEdge<E>): boolean;
-  nodesCount(): number;
-  [meta]?: {
-    directed: boolean;
-  };
-}
 
-type GraphEdge<T> = { to: string; from: string; value: T };
 export function createOrientedGraph<N, E>(
   events: Events
 ): IDirectedGraph<N, E> {
