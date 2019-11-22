@@ -1,41 +1,29 @@
 export * from './CompoundGraph';
-export * from './OrientedGraph';
+export * from './Graph';
 import { createHierarchy, IHierarchy } from './CompoundGraph';
 import {
   createOrientedGraph,
-  IOrientedGraph,
-  IUnorientedGraph,
+  IDirectedGraph,
+  IUndirectedGraph,
   createGraph as createUnorientedGraph,
-} from './OrientedGraph';
+} from './Graph';
 
 export function createCompoundGraph<N, E>(
   type: 'graph'
-): IHierarchy & IUnorientedGraph<N, E>;
+): IHierarchy & IUndirectedGraph<N, E>;
 export function createCompoundGraph<N, E>(
   type: 'digraph'
-): IHierarchy & IOrientedGraph<N, E>;
+): IHierarchy & IDirectedGraph<N, E>;
 
 export function createCompoundGraph<N, E>(type: string): any {
   const hierarchy = createHierarchy();
+  const events = {
+    onAddNode: hierarchy.addNode,
+    onRemoveNode: hierarchy.removeHierarchyNode,
+  };
   const graph =
     type === 'graph'
-      ? createUnorientedGraph<N, E>()
-      : createOrientedGraph<N, E>();
-  return Object.assign(graph, hierarchy, {
-    ...graph,
-    setNode(node, value) {
-      const hasNode = graph.setNode(node, value);
-      if (!hasNode) {
-        hierarchy.addNode(node);
-      }
-      return hasNode;
-    },
-    removeNode(node) {
-      const hasNode = graph.removeNode(node);
-      if (hasNode) {
-        hierarchy.removeHierarchyNode(node);
-      }
-      return hasNode;
-    },
-  } as IOrientedGraph<N, E>);
+      ? createUnorientedGraph<N, E>(events)
+      : createOrientedGraph<N, E>(events);
+  return Object.assign({}, graph, hierarchy);
 }

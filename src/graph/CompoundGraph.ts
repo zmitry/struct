@@ -1,13 +1,13 @@
 import { upsertSet } from './helpers';
 
-const ROOT_NODE = '_____root_graph_node_____';
+export const ROOT_NODE = '_____root_graph_node_____';
 
 export interface IHierarchy {
   addNode(node: string): void;
   setParent(node: string, parent: string): void;
   getParent(node: string): string;
   removeHierarchyNode(node: string): void;
-  getChildren(node: string): string[];
+  getChildren(node?: string): string[];
 }
 
 export function createHierarchy(): IHierarchy {
@@ -19,6 +19,10 @@ export function createHierarchy(): IHierarchy {
       hierarchy.setParent(node, ROOT_NODE);
     },
     setParent(node: string, parent: string = ROOT_NODE) {
+      // todo make it optimal
+      for (let [, v] of hierarchyChildren) {
+        v.delete(node);
+      }
       upsertSet(hierarchyChildren, parent, node);
       hierarchyParent.set(node, parent);
     },

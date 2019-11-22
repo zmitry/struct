@@ -1,6 +1,11 @@
 import { upsertSet } from './helpers';
 
-function createBaseGraph<N, E>() {
+export const meta = Symbol();
+type Events = {
+  onAddNode: (k: string) => void;
+  onRemoveNode: (k: string) => void;
+};
+function createBaseGraph<N, E>(events: Events) {
   const nodesMap = new Map<string, N>();
   const edgesMap = new Map<string, GraphEdge<E>>();
 
@@ -13,6 +18,9 @@ function createBaseGraph<N, E>() {
     },
     setNode(n: string, value?: N) {
       const hasNode = graph.hasNode(n);
+      if (!hasNode) {
+        events.onAddNode(n);
+      }
       nodesMap.set(n, value as N);
       return hasNode;
     },
@@ -23,6 +31,7 @@ function createBaseGraph<N, E>() {
       if (!nodesMap.has(n)) {
         return false;
       }
+      events.onRemoveNode(n);
       nodesMap.delete(n);
       for (let edge of edgesMap.values()) {
         if (edge.from === n || edge.to === n) {
@@ -42,7 +51,7 @@ function createBaseGraph<N, E>() {
         graph.setNode(from);
       }
       if (!graph.hasNode(to)) {
-        graph.setNode(from);
+        graph.setNode(to);
       }
       const edge = edgeToString(from, to);
       const hasEdge = edgesMap.has(edge);
@@ -95,7 +104,7 @@ function createBaseGraph<N, E>() {
   return graph;
 }
 
-export interface IUnorientedGraph<N, E> {
+export interface IUndirectedGraph<N, E> {
   edges(): GraphEdge<E>[];
   nodes(): Array<[string, N]>;
   hasNode(v: string): boolean;
@@ -111,13 +120,16 @@ export interface IUnorientedGraph<N, E> {
   removeNodeValue(node: string): boolean;
   removeEdgeByObj(edge: GraphEdge<E>): boolean;
   nodesCount(): number;
+  [meta]?: {
+    directed: boolean;
+  };
 }
 
-export function createGraph<N, E>() {
+export function createGraph<N, E>(events: Events) {
   const nodesEdges = new Map<string, Set<string>>();
-  const base = createBaseGraph<N, E>();
+  const base = createBaseGraph<N, E>(events);
 
-  const graph: IUnorientedGraph<N, E> = {
+  const graph: IUndirectedGraph<N, E> = {
     getNodeValue: base.getNodeValue,
     setNode: base.setNode,
     hasNode: base.hasNode,
@@ -151,11 +163,12 @@ export function createGraph<N, E>() {
     neighbors(n: string) {
       return Array.from(nodesEdges.get(n)?.values() || []);
     },
+    [meta]: { directed: true },
   };
   return graph;
 }
 // type for basic graph implementation
-export interface IOrientedGraph<N, E> {
+export interface IDirectedGraph<N, E> {
   edges(): GraphEdge<E>[];
   nodes(): Array<[string, N]>;
   sources(): string[];
@@ -176,15 +189,20 @@ export interface IOrientedGraph<N, E> {
   removeNodeValue(node: string): boolean;
   removeEdgeByObj(edge: GraphEdge<E>): boolean;
   nodesCount(): number;
+  [meta]?: {
+    directed: boolean;
+  };
 }
 
 type GraphEdge<T> = { to: string; from: string; value: T };
-export function createOrientedGraph<N, E>(): IOrientedGraph<N, E> {
+export function createOrientedGraph<N, E>(
+  events: Events
+): IDirectedGraph<N, E> {
   const inNodes = new Map<string, Set<string>>();
   const outNodes = new Map<string, Set<string>>();
-  const base = createBaseGraph<N, E>();
+  const base = createBaseGraph<N, E>(events);
 
-  const graph: IOrientedGraph<N, E> = {
+  const graph: IDirectedGraph<N, E> = {
     getNodeValue: base.getNodeValue,
     setNode: base.setNode,
     hasNode: base.hasNode,
