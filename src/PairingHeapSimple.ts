@@ -35,7 +35,7 @@ function mergePairs(root: HeapNode | null): HeapNode | null {
     let rest = root?.sibling;
 
     const newRoot = merge(node1, node2);
-    return merge(newRoot, mergePairs(rest));
+    return merge(newRoot, mergePairs(rest as HeapNode));
   }
 }
 
