@@ -1,21 +1,20 @@
-import { IUndirectedGraph, meta } from './Graph';
-import { IHierarchy, ROOT_NODE } from './CompoundGraph';
+import { IUndirectedGraph, meta } from './graph';
+import { IHierarchy, ROOT_NODE } from './compound-graph';
 
 type Writer = ReturnType<typeof makeWriter>;
-
 export function toDot<N, E>(
   g: IUndirectedGraph<N, E> & IHierarchy,
-  args: { intend: string; compound: true }
+  args: { intend?: string; compound: true }
 ): string;
 
 export function toDot<N, E>(
   g: IUndirectedGraph<N, E>,
-  args: { intend: string; compound?: false }
+  args: { intend?: string; compound?: false }
 ): string;
 
 export function toDot<N, E>(
   g: any,
-  { intend, compound }: { intend: string; compound?: boolean }
+  { intend = ' ', compound }: { intend?: string; compound?: boolean }
 ) {
   const graph: IUndirectedGraph<N, E> & IHierarchy = g;
   const writer = makeWriter(intend);

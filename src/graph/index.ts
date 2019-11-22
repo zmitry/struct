@@ -1,12 +1,12 @@
-export * from './CompoundGraph';
-export * from './Graph';
-import { createHierarchy, IHierarchy } from './CompoundGraph';
+export * from './compound-graph';
+export * from './graph';
+import { createHierarchy, IHierarchy } from './compound-graph';
 import {
   createOrientedGraph,
   IDirectedGraph,
   IUndirectedGraph,
   createGraph as createUnorientedGraph,
-} from './Graph';
+} from './graph';
 
 export function createCompoundGraph<N, E>(
   type: 'graph'
