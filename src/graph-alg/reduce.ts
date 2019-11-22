@@ -22,10 +22,10 @@ function doReduce(
   return acc;
 }
 
-export function reduce<Acc>(
+export function reduce<Acc, V>(
   graph: { hasNode(n: string): boolean },
   rootNodes: string[],
-  fn: <V>(ac: Acc, v: V) => Acc,
+  fn: (ac: Acc, v: V) => Acc,
   acc: Acc,
   order = false,
   navigate = (n: string) => (graph as any).successors(n)
