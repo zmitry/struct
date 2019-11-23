@@ -1,12 +1,7 @@
+import { createHierarchy, IHierarchy } from './compound-graph';
+import { IDirectedGraph, IUndirectedGraph, createGraph } from './graph';
 export * from './compound-graph';
 export * from './graph';
-import { createHierarchy, IHierarchy } from './compound-graph';
-import {
-  createOrientedGraph,
-  IDirectedGraph,
-  IUndirectedGraph,
-  createGraph as createUnorientedGraph,
-} from './graph';
 
 export function createCompoundGraph<N, E>(
   type: 'graph'
@@ -23,7 +18,7 @@ export function createCompoundGraph<N, E>(type: string): any {
   };
   const graph =
     type === 'graph'
-      ? createUnorientedGraph<N, E>(events)
-      : createOrientedGraph<N, E>(events);
+      ? createGraph<N, E>({ events, directed: false })
+      : createGraph<N, E>({ events, directed: true });
   return Object.assign({}, graph, hierarchy);
 }

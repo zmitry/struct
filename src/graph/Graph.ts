@@ -1,5 +1,6 @@
 import { upsertSet } from './helpers';
 
+//#region types
 export const meta = Symbol();
 interface IBaseGraphApi<N, E> {
   /**
@@ -47,12 +48,16 @@ export interface IUndirectedGraph<N, E> extends IBaseGraphApi<N, E> {
    *  list of all nodes connected with provided key
    */
   neighbors(node: string): string[];
+  /**
+   * list of nodes without  edges
+   */
+  orphans(node: string): string[];
   [meta]?: {
     directed: boolean;
   };
 }
 // type for basic graph implementation
-export interface IDirectedGraph<N, E> extends IBaseGraphApi<N, E> {
+export interface IDirectedGraph<N, E> extends IUndirectedGraph<N, E> {
   /**
    * list of nodes without incoming edges
    */
@@ -62,10 +67,6 @@ export interface IDirectedGraph<N, E> extends IBaseGraphApi<N, E> {
    */
   sinks(): string[];
   /**
-   * list of nodes without  edges
-   */
-  orphans(): string[];
-  /**
    * list of incoming edges for particular node
    * @param n node key
    */
@@ -74,21 +75,18 @@ export interface IDirectedGraph<N, E> extends IBaseGraphApi<N, E> {
    * list of outgoing edges for particular node
    */
   successors(node: string): string[];
-  /**
-   *  predecessors and successors
-   */
-  neighbors(node: string): string[];
   [meta]?: {
     directed: boolean;
   };
 }
 
-type GraphEdge<T> = { to: string; from: string; value: T };
+type GraphEdge<T> = { to: string; from: string; value?: T };
 
 type Events = {
-  onAddNode: (k: string) => void;
-  onRemoveNode: (k: string) => void;
+  onAddNode?: (k: string) => void;
+  onRemoveNode?: (k: string) => void;
 };
+//#endregion
 
 function createBaseGraph<N, E>(events: Events) {
   const nodesMap = new Map<string, N>();
@@ -104,7 +102,7 @@ function createBaseGraph<N, E>(events: Events) {
     setNode(n: string, value?: N) {
       const hasNode = graph.hasNode(n);
       if (!hasNode) {
-        events.onAddNode(n);
+        events.onAddNode?.(n);
       }
       nodesMap.set(n, value as N);
       return hasNode;
@@ -116,7 +114,7 @@ function createBaseGraph<N, E>(events: Events) {
       if (!nodesMap.has(n)) {
         return false;
       }
-      events.onRemoveNode(n);
+      events.onRemoveNode?.(n);
       nodesMap.delete(n);
       for (let edge of edgesMap.values()) {
         if (edge.from === n || edge.to === n) {
@@ -146,6 +144,12 @@ function createBaseGraph<N, E>(events: Events) {
         to,
       });
       return hasEdge;
+    },
+    setEdgeByObj({ from, to, value }: GraphEdge<E>) {
+      if (from && to) {
+        return graph.setEdge(from, to, value);
+      }
+      return false;
     },
     // it doesn't remove node itself
     removeEdge(from: string, to: string) {
@@ -189,57 +193,34 @@ function createBaseGraph<N, E>(events: Events) {
   return graph;
 }
 
-export function createGraph<N, E>(events: Events) {
-  const nodesEdges = new Map<string, Set<string>>();
-  const base = createBaseGraph<N, E>(events);
+export function createGraph<N, E>(arg: {
+  events: Events;
+  directed: true;
+}): IDirectedGraph<N, E>;
+export function createGraph<N, E>(arg: {
+  events: Events;
+  directed: false;
+}): IUndirectedGraph<N, E>;
 
-  const graph: IUndirectedGraph<N, E> = {
-    getNodeValue: base.getNodeValue,
-    setNode: base.setNode,
-    hasNode: base.hasNode,
-    removeNodeValue: base.removeNodeValue,
-    getEdgeValue: base.getEdgeValue,
-    removeEdgeByObj: base.removeEdgeByObj,
-    hasEdge: base.hasEdge,
-    nodes: base.nodes,
-    edges: base.edges,
-    edgesCount: base.edgesCount,
-    nodesCount: base.nodesCount,
-    removeNode(n: string): boolean {
-      const hasNode = base.removeNode(n);
-      if (hasNode) {
-        nodesEdges.delete(n);
-      }
-      return hasNode;
-    },
-    setEdge(from: string, to: string, value?: E) {
-      const hasEdge = base.setEdge(from, to, value);
-      upsertSet(nodesEdges, from, to);
-      return hasEdge;
-    },
-    removeEdge(from: string, to: string) {
-      const hasEdge = base.removeEdge(from, to);
-      if (hasEdge) {
-        nodesEdges.get(from)?.delete(to);
-      }
-      return hasEdge;
-    },
-    neighbors(n: string) {
-      return Array.from(nodesEdges.get(n)?.values() || []);
-    },
-    [meta]: { directed: true },
-  };
-  return graph;
-}
-
-export function createOrientedGraph<N, E>(
-  events: Events
-): IDirectedGraph<N, E> {
+export function createGraph<N, E>({
+  events = {},
+  directed,
+}: {
+  directed?: boolean;
+  events?: Events;
+}): IDirectedGraph<N, E> {
   const inNodes = new Map<string, Set<string>>();
   const outNodes = new Map<string, Set<string>>();
   const base = createBaseGraph<N, E>(events);
-
-  const graph: IDirectedGraph<N, E> = {
+  function reorderEdge<T>(from: string, to: string, value?: T) {
+    if (directed && from < to) {
+      let tmp = from;
+      from = to;
+      to = tmp;
+    }
+    return { from, to, value };
+  }
+  const graph: IUndirectedGraph<N, E> = {
     getNodeValue: base.getNodeValue,
     setNode: base.setNode,
     hasNode: base.hasNode,
@@ -260,6 +241,7 @@ export function createOrientedGraph<N, E>(
       return hasNode;
     },
     setEdge(from: string, to: string, value?: E) {
+      ({ from, to, value } = reorderEdge(from, to, value));
       const hasEdge = base.setEdge(from, to, value);
       upsertSet(inNodes, to, from);
       upsertSet(outNodes, from, to);
@@ -267,18 +249,13 @@ export function createOrientedGraph<N, E>(
     },
     // it doesn't not remove node itself
     removeEdge(from: string, to: string) {
+      ({ from, to } = reorderEdge(from, to));
       const hasEdge = base.removeEdge(from, to);
       if (hasEdge) {
         inNodes.get(to)?.delete(from);
         outNodes.get(from)?.delete(to);
       }
       return hasEdge;
-    },
-    predecessors(n: string) {
-      return Array.from(inNodes.get(n)?.values() || []);
-    },
-    successors(n: string) {
-      return Array.from(outNodes.get(n)?.values() || []);
     },
     neighbors(n: string) {
       const outItems = outNodes.get(n)?.values();
@@ -288,17 +265,27 @@ export function createOrientedGraph<N, E>(
       }
       return Array.from(outItems || inItems || []);
     },
-    sources() {
-      return base.filterNodes(k => !inNodes.has(k));
-    },
-    sinks() {
-      return base.filterNodes(k => !outNodes.has(k));
-    },
     orphans() {
-      return base.filterNodes(k => !outNodes.has(k) && !outNodes.has(k));
+      return base.filterNodes(k => !inNodes.has(k) && !outNodes.has(k));
     },
   };
-  return graph;
+  if (directed) {
+    Object.assign(graph, {
+      predecessors(n: string) {
+        return Array.from(inNodes.get(n)?.values() || []);
+      },
+      successors(n: string) {
+        return Array.from(outNodes.get(n)?.values() || []);
+      },
+      sources() {
+        return base.filterNodes(k => !inNodes.has(k));
+      },
+      sinks() {
+        return base.filterNodes(k => !outNodes.has(k));
+      },
+    } as Partial<IDirectedGraph<N, E>>);
+  }
+  return graph as IDirectedGraph<N, E>;
 }
 
 function edgeToString(from: string, to: string) {
