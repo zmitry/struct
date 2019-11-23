@@ -1,4 +1,6 @@
-import { upsertSet, Optional } from './helpers';
+import {Optional} from 'utility-types';
+
+import { upsertSet } from './helpers';
 
 export const meta = Symbol();
 interface IBaseGraphApi<N, E> {
