@@ -10,3 +10,4 @@
 - setup infrastructure for publishing packages
 - docs for api
 - docs generation
+- cast incoming node labels to a string
