@@ -1,4 +1,4 @@
-import { upsertSet } from './helpers';
+import { upsertSet, Optional } from './helpers';
 
 export const meta = Symbol();
 interface IBaseGraphApi<N, E> {
@@ -39,7 +39,7 @@ interface IBaseGraphApi<N, E> {
   getNodeValue(node: string): N | undefined;
   getEdgeValue(from: string, to: String): E | undefined;
   removeNodeValue(node: string): boolean;
-  removeEdgeByObj(edge: Omit<GraphEdge<E>, 'value'>): boolean;
+  removeEdgeByObj(edge: Optional<GraphEdge<E>, 'value'>): boolean;
   nodesCount(): number;
 }
 export interface IUndirectedGraph<N, E> extends IBaseGraphApi<N, E> {
@@ -157,7 +157,7 @@ function createBaseGraph<N, E>(events: Events) {
       return edgesMap.delete(edgeToString(from, to));
     },
     // remove edge by object
-    removeEdgeByObj({ from, to }: Omit<GraphEdge<E>, 'value'>) {
+    removeEdgeByObj({ from, to }: Optional<GraphEdge<E>, 'value'>) {
       if (from && to) {
         return graph.removeEdge(from, to);
       }
