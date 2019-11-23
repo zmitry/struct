@@ -79,6 +79,35 @@ describe('Graph', () => {
     });
   });
 
+  describe('hasNode', () => {
+    it("should return false if the node isn't part of the graph", () => {
+      expect(graph.hasNode('a')).toBe(false);
+    });
+
+    it('should return true if node it is part of the graph', () => {
+      graph.setNode('a');
+
+      expect(graph.hasNode('a')).toBe(true);
+    });
+  });
+
+  describe('removeNodeValue', () => {
+    it('should remove value of the node', () => {
+      graph.setNode('a', 'foo');
+      graph.removeNodeValue('a');
+
+      expect(graph.getNodeValue('a')).toBeUndefined();
+    });
+
+    it('should idempotent remove value of the node', () => {
+      graph.setNode('a', 'foo');
+      graph.removeNode('a');
+      graph.removeNode('a');
+
+      expect(graph.getNodeValue('a')).toBeUndefined();
+    });
+  });
+
   describe('getNodeValue', () => {
     it("should return undefined if the node isn't part of the graph", () => {
       expect(graph.getNodeValue('a')).toBeUndefined();
@@ -240,6 +269,18 @@ describe('Graph', () => {
     });
   });
 
+  describe('hasEdge', () => {
+    it("should return false if the edge isn't part of the graph", () => {
+      expect(graph.hasEdge('a', 'b')).toBe(false);
+    });
+
+    it('should return true if edge it is part of the graph', () => {
+      graph.setEdge('a', 'b');
+
+      expect(graph.hasEdge('a', 'b')).toBe(true);
+    });
+  });
+
   describe('removeEdge', () => {
     it('should has no effect if the edge is not in the graph', () => {
       graph.removeEdge('a', 'b');
@@ -251,6 +292,28 @@ describe('Graph', () => {
     it('should remove neighbors', () => {
       graph.setEdge('a', 'b');
       graph.removeEdge('a', 'b');
+
+      expect(graph.neighbors('b')).toEqual([]);
+    });
+  });
+
+  describe('removeEdgeByObj', () => {
+    it('should has no effect if the edge is not in the graph', () => {
+      graph.removeEdgeByObj({
+        from: 'a',
+        to: 'b',
+      });
+
+      expect(graph.hasEdge('a', 'b')).toBe(false);
+      expect(graph.edgesCount()).toBe(0);
+    });
+
+    it('should remove neighbors', () => {
+      graph.setEdge('a', 'b');
+      graph.removeEdgeByObj({
+        from: 'a',
+        to: 'b',
+      });
 
       expect(graph.neighbors('b')).toEqual([]);
     });

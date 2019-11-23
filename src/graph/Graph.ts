@@ -39,7 +39,7 @@ interface IBaseGraphApi<N, E> {
   getNodeValue(node: string): N | undefined;
   getEdgeValue(from: string, to: String): E | undefined;
   removeNodeValue(node: string): boolean;
-  removeEdgeByObj(edge: GraphEdge<E>): boolean;
+  removeEdgeByObj(edge: Omit<GraphEdge<E>, 'value'>): boolean;
   nodesCount(): number;
 }
 export interface IUndirectedGraph<N, E> extends IBaseGraphApi<N, E> {
@@ -157,7 +157,7 @@ function createBaseGraph<N, E>(events: Events) {
       return edgesMap.delete(edgeToString(from, to));
     },
     // remove edge by object
-    removeEdgeByObj({ from, to }: GraphEdge<E>) {
+    removeEdgeByObj({ from, to }: Omit<GraphEdge<E>, 'value'>) {
       if (from && to) {
         return graph.removeEdge(from, to);
       }
