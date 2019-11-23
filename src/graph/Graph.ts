@@ -106,6 +106,11 @@ function createBaseGraph<N, E>(events: Events) {
       if (!hasNode) {
         events.onAddNode(n);
       }
+
+      if (hasNode && typeof value === 'undefined') {
+        return hasNode;
+      }
+
       nodesMap.set(n, value as N);
       return hasNode;
     },
