@@ -1,5 +1,5 @@
-import { toDot } from './dot';
-import { createCompoundGraph } from './index';
+import { toDot } from '../dot';
+import { createCompoundGraph } from '../index';
 
 function setup() {
   const g = createCompoundGraph<any, any>('digraph');
