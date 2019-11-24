@@ -1,4 +1,4 @@
-import { createHeap } from './pairing-heap-simple';
+import { createHeap } from './pairing-heap';
 // TODO add more cases
 test('basic', () => {
   const h = createHeap();

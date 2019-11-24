@@ -63,8 +63,8 @@ function id(obj: any) {
   return `"${String(obj).replace(/"/g, '\\"')}"`;
 }
 
-function attrsToString(attrs: Object) {
-  if (isObject(attrs)) {
+function attrsToString(attrs?: Object) {
+  if (attrs && isObject(attrs)) {
     const attrStrs = Object.entries(attrs).map(
       ([key, val]) => `${id(key)}=${id(val)}`
     );
