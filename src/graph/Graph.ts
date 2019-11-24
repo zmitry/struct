@@ -214,13 +214,14 @@ export function createGraph<N, E>({
   directed,
 }: {
   directed?: boolean;
+
   events?: Events;
 }): IDirectedGraph<N, E> {
   const inNodes = new Map<string, Set<string>>();
   const outNodes = new Map<string, Set<string>>();
   const base = createBaseGraph<N, E>(events);
   function reorderEdge<T>(from: string, to: string, value?: T) {
-    if (directed && from < to) {
+    if (!directed && from < to) {
       let tmp = from;
       from = to;
       to = tmp;
