@@ -1,4 +1,4 @@
 export * from './LRUCache';
-export * from './PairingHeapSimple';
+export * from './pairing-heap';
 export * from './graph/graph';
 export * from './graph';
