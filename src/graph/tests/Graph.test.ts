@@ -7,33 +7,33 @@ const getEvents = () => ({
 
 describe('Graph', () => {
   let events = getEvents();
-  let graph: IDirectedGraph<unknown, unknown>;
+  let digraph: IDirectedGraph<unknown, unknown>;
 
   beforeEach(() => {
     events = getEvents();
-    graph = createGraph({
+    digraph = createGraph({
       events,
       directed: true,
     });
   });
 
   it('should have a correct initial state', function() {
-    expect(graph.nodesCount()).toBe(0);
-    expect(graph.edgesCount()).toBe(0);
+    expect(digraph.nodesCount()).toBe(0);
+    expect(digraph.edgesCount()).toBe(0);
     expect(events.onAddNode.mock.calls.length).toBe(0);
     expect(events.onRemoveNode.mock.calls.length).toBe(0);
   });
 
   describe('nodes', () => {
     it('should is empty if there are nodes in the graph', () => {
-      expect(graph.nodes()).toEqual([]);
+      expect(digraph.nodes()).toEqual([]);
     });
 
     it('should return the ids and values of nodes in the graph', () => {
-      graph.setNode('a', {});
-      graph.setNode('b', {});
+      digraph.setNode('a', {});
+      digraph.setNode('b', {});
 
-      expect(graph.nodes()).toEqual([
+      expect(digraph.nodes()).toEqual([
         ['a', {}],
         ['b', {}],
       ]);
@@ -42,204 +42,204 @@ describe('Graph', () => {
 
   describe('sources', () => {
     it('should return nodes in the graph that have no in-edges', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.setNode('d');
+      digraph.setEdge('a', 'b');
+      digraph.setEdge('b', 'c');
+      digraph.setNode('d');
 
-      expect(graph.sources().sort()).toEqual(['a', 'd']);
+      expect(digraph.sources().sort()).toEqual(['a', 'd']);
     });
   });
 
   describe('sinks', () => {
     it('should nodes in the graph that have no out-edges', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.setNode('d');
+      digraph.setEdge('a', 'b');
+      digraph.setEdge('b', 'c');
+      digraph.setNode('d');
 
-      expect(graph.sinks()).toEqual(['c', 'd']);
+      expect(digraph.sinks()).toEqual(['c', 'd']);
     });
   });
 
   describe('setNode', () => {
     it("should create the node if it isn't part of the graph", () => {
-      graph.setNode('a');
+      digraph.setNode('a');
 
-      expect(graph.hasNode('a')).toBe(true);
-      expect(graph.getNodeValue('a')).toBeUndefined();
-      expect(graph.nodesCount()).toBe(1);
+      expect(digraph.hasNode('a')).toBe(true);
+      expect(digraph.getNodeValue('a')).toBeUndefined();
+      expect(digraph.nodesCount()).toBe(1);
       expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it('should can set a value for the node', () => {
-      graph.setNode('a', 'foo');
+      digraph.setNode('a', 'foo');
 
-      expect(graph.getNodeValue('a')).toBe('foo');
+      expect(digraph.getNodeValue('a')).toBe('foo');
       expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it("should does not change the node's value with a 1-arg invocation", () => {
-      graph.setNode('a', 'foo');
-      graph.setNode('a');
+      digraph.setNode('a', 'foo');
+      digraph.setNode('a');
 
-      expect(graph.getNodeValue('a')).toBe('foo');
+      expect(digraph.getNodeValue('a')).toBe('foo');
       expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it("should can remove the node's value by passing undefined", () => {
-      graph.setNode('a', undefined);
+      digraph.setNode('a', undefined);
 
-      expect(graph.getNodeValue('a')).toBeUndefined();
+      expect(digraph.getNodeValue('a')).toBeUndefined();
       expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it('should filter idempotent nodes', () => {
-      graph.setNode('a', 'foo');
-      graph.setNode('a', 'foo');
+      digraph.setNode('a', 'foo');
+      digraph.setNode('a', 'foo');
 
-      expect(graph.getNodeValue('a')).toBe('foo');
-      expect(graph.nodesCount()).toBe(1);
+      expect(digraph.getNodeValue('a')).toBe('foo');
+      expect(digraph.nodesCount()).toBe(1);
       expect(events.onAddNode.mock.calls.length).toBe(1);
     });
   });
 
   describe('hasNode', () => {
     it("should return false if the node isn't part of the graph", () => {
-      expect(graph.hasNode('a')).toBe(false);
+      expect(digraph.hasNode('a')).toBe(false);
     });
 
     it('should return true if node it is part of the graph', () => {
-      graph.setNode('a');
+      digraph.setNode('a');
 
-      expect(graph.hasNode('a')).toBe(true);
+      expect(digraph.hasNode('a')).toBe(true);
     });
   });
 
   describe('removeNodeValue', () => {
     it('should remove value of the node', () => {
-      graph.setNode('a', 'foo');
-      graph.removeNodeValue('a');
+      digraph.setNode('a', 'foo');
+      digraph.removeNodeValue('a');
 
-      expect(graph.getNodeValue('a')).toBeUndefined();
+      expect(digraph.getNodeValue('a')).toBeUndefined();
     });
 
     it('should idempotent remove value of the node', () => {
-      graph.setNode('a', 'foo');
-      graph.removeNode('a');
-      graph.removeNode('a');
+      digraph.setNode('a', 'foo');
+      digraph.removeNode('a');
+      digraph.removeNode('a');
 
-      expect(graph.getNodeValue('a')).toBeUndefined();
+      expect(digraph.getNodeValue('a')).toBeUndefined();
     });
   });
 
   describe('getNodeValue', () => {
     it("should return undefined if the node isn't part of the graph", () => {
-      expect(graph.getNodeValue('a')).toBeUndefined();
+      expect(digraph.getNodeValue('a')).toBeUndefined();
     });
 
     it('should return value of the node if it is part of the graph', () => {
-      graph.setNode('a', 'foo');
-      expect(graph.getNodeValue('a')).toBe('foo');
+      digraph.setNode('a', 'foo');
+      expect(digraph.getNodeValue('a')).toBe('foo');
     });
   });
 
   describe('removeNode', () => {
     it('should does nothing if the node is not in the graph', () => {
-      expect(graph.nodesCount()).toBe(0);
+      expect(digraph.nodesCount()).toBe(0);
 
-      graph.removeNode('a');
+      digraph.removeNode('a');
 
-      expect(graph.hasNode('a')).toBe(false);
-      expect(graph.nodesCount()).toBe(0);
+      expect(digraph.hasNode('a')).toBe(false);
+      expect(digraph.nodesCount()).toBe(0);
       expect(events.onRemoveNode.mock.calls.length).toBe(0);
     });
 
     it('should remove the node if it is in the graph', () => {
-      graph.setNode('a');
-      graph.removeNode('a');
+      digraph.setNode('a');
+      digraph.removeNode('a');
 
-      expect(graph.hasNode('a')).toBe(false);
-      expect(graph.nodesCount()).toBe(0);
+      expect(digraph.hasNode('a')).toBe(false);
+      expect(digraph.nodesCount()).toBe(0);
       expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
 
     it('should is idempotent', () => {
-      graph.setNode('a');
-      graph.removeNode('a');
-      graph.removeNode('a');
+      digraph.setNode('a');
+      digraph.removeNode('a');
+      digraph.removeNode('a');
 
-      expect(graph.hasNode('a')).toBe(false);
-      expect(graph.nodesCount()).toBe(0);
+      expect(digraph.hasNode('a')).toBe(false);
+      expect(digraph.nodesCount()).toBe(0);
       expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
 
     it('should remove edges incident on the node', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.removeNode('b');
+      digraph.setEdge('a', 'b');
+      digraph.setEdge('b', 'c');
+      digraph.removeNode('b');
 
-      expect(graph.edgesCount()).toBe(0);
+      expect(digraph.edgesCount()).toBe(0);
       expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
   });
 
   describe('neighbors', () => {
     it('should return empty array for a node that is not in the graph', () => {
-      expect(graph.neighbors('a')).toEqual([]);
+      expect(digraph.neighbors('a')).toEqual([]);
     });
 
     it('should return the neighbors of a node', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.setEdge('a', 'a');
+      digraph.setEdge('a', 'b');
+      digraph.setEdge('b', 'c');
+      digraph.setEdge('a', 'a');
 
-      expect(graph.neighbors('a').sort()).toEqual(['a', 'b']);
-      expect(graph.neighbors('b').sort()).toEqual(['a', 'c']);
-      expect(graph.neighbors('c').sort()).toEqual(['b']);
+      expect(digraph.neighbors('a').sort()).toEqual(['a', 'a', 'b']);
+      expect(digraph.neighbors('b').sort()).toEqual(['a', 'c']);
+      expect(digraph.neighbors('c').sort()).toEqual(['b']);
     });
   });
 
   describe('predecessors', function() {
     it('should return undefined for a node that is not in the graph', function() {
-      expect(graph.predecessors('a')).toBeUndefined();
+      expect(digraph.predecessors('a')).toEqual([]);
     });
 
     it('should return the predecessors of a node', function() {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.setEdge('a', 'a');
+      digraph.setEdge('a', 'b');
+      digraph.setEdge('b', 'c');
+      digraph.setEdge('a', 'a');
 
-      expect(graph.predecessors('a').sort()).toEqual(['a']);
-      expect(graph.predecessors('b').sort()).toEqual(['a']);
-      expect(graph.predecessors('c').sort()).toEqual(['b']);
+      expect(digraph.predecessors('a').sort()).toEqual(['a']);
+      expect(digraph.predecessors('b').sort()).toEqual(['a']);
+      expect(digraph.predecessors('c').sort()).toEqual(['b']);
     });
   });
 
   describe('successors', function() {
     it('should return undefined for a node that is not in the graph', function() {
-      expect(graph.successors('a')).toEqual([]);
+      expect(digraph.successors('a')).toEqual([]);
     });
 
     it('should return the successors of a node', function() {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.setEdge('a', 'a');
+      digraph.setEdge('a', 'b');
+      digraph.setEdge('b', 'c');
+      digraph.setEdge('a', 'a');
 
-      expect(graph.successors('a').sort()).toEqual(['a', 'b']);
-      expect(graph.successors('b').sort()).toEqual(['c']);
-      expect(graph.successors('c').sort()).toEqual([]);
+      expect(digraph.successors('a').sort()).toEqual(['a', 'b']);
+      expect(digraph.successors('b').sort()).toEqual(['c']);
+      expect(digraph.successors('c').sort()).toEqual([]);
     });
   });
 
   describe('edges', () => {
     it('should is empty if there are no edges in the graph', () => {
-      expect(graph.edges()).toEqual([]);
+      expect(digraph.edges()).toEqual([]);
     });
 
     it('should return the keys for edges in the graph', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
+      digraph.setEdge('a', 'b');
+      digraph.setEdge('b', 'c');
 
-      const sortedEdges = graph
+      const sortedEdges = digraph
         .edges()
         .sort((edgeA, edgeB) => (edgeA.to === edgeB.from ? -1 : 1));
 
@@ -258,167 +258,167 @@ describe('Graph', () => {
 
   describe('setEdge', () => {
     it("should create the edge if it isn't part of the graph", () => {
-      graph.setNode('a');
-      graph.setNode('b');
-      graph.setEdge('a', 'b');
+      digraph.setNode('a');
+      digraph.setNode('b');
+      digraph.setEdge('a', 'b');
 
-      expect(graph.getEdgeValue('a', 'b')).toBeUndefined();
-      expect(graph.hasEdge('a', 'b')).toBe(true);
-      expect(graph.edgesCount()).toBe(1);
+      expect(digraph.getEdgeValue('a', 'b')).toBeUndefined();
+      expect(digraph.hasEdge('a', 'b')).toBe(true);
+      expect(digraph.edgesCount()).toBe(1);
     });
 
     it('should create the nodes for the edge if they are not part of the graph', () => {
-      graph.setEdge('a', 'b');
+      digraph.setEdge('a', 'b');
 
-      expect(graph.hasNode('a')).toBe(true);
-      expect(graph.hasNode('b')).toBe(true);
-      expect(graph.nodesCount()).toBe(2);
+      expect(digraph.hasNode('a')).toBe(true);
+      expect(digraph.hasNode('b')).toBe(true);
+      expect(digraph.nodesCount()).toBe(2);
     });
 
     it('should change the value for an edge if it is already in the graph', () => {
-      graph.setEdge('a', 'b', 'foo');
-      graph.setEdge('a', 'b', 'bar');
+      digraph.setEdge('a', 'b', 'foo');
+      digraph.setEdge('a', 'b', 'bar');
 
-      expect(graph.getEdgeValue('a', 'b')).toBe('bar');
+      expect(digraph.getEdgeValue('a', 'b')).toBe('bar');
     });
 
     it('should delete the value for the edge if the value arg is undefined', () => {
-      graph.setEdge('a', 'b', 'foo');
-      graph.setEdge('a', 'b', undefined);
+      digraph.setEdge('a', 'b', 'foo');
+      digraph.setEdge('a', 'b', undefined);
 
-      expect(graph.getEdgeValue('a', 'b')).toBeUndefined();
-      expect(graph.hasEdge('a', 'b')).toBe(true);
+      expect(digraph.getEdgeValue('a', 'b')).toBeUndefined();
+      expect(digraph.hasEdge('a', 'b')).toBe(true);
     });
 
     it('should can take an edge object as the first parameter', () => {
-      graph.setEdge('a', 'b', 'value');
+      digraph.setEdge('a', 'b', 'value');
 
-      expect(graph.getEdgeValue('a', 'b')).toBe('value');
+      expect(digraph.getEdgeValue('a', 'b')).toBe('value');
     });
 
     it('should treat edges in opposite directions as distinct in a digraph', () => {
-      graph.setEdge('a', 'b');
+      digraph.setEdge('a', 'b');
 
-      expect(graph.hasEdge('a', 'b')).toBe(true);
-      expect(graph.hasEdge('b', 'a')).toBe(false);
+      expect(digraph.hasEdge('a', 'b')).toBe(true);
+      expect(digraph.hasEdge('b', 'a')).toBe(false);
     });
 
     it('should handle undirected graph edges', () => {
-      const undigraph = createGraph({
+      const graph = createGraph({
         events,
         directed: false,
       });
 
-      undigraph.setEdge('a', 'b', 'foo');
+      graph.setEdge('a', 'b', 'foo');
 
-      expect(undigraph.getEdgeValue('a', 'b')).toBe('foo');
-      expect(undigraph.getEdgeValue('b', 'a')).toBe('foo');
+      expect(graph.getEdgeValue('a', 'b')).toBe('foo');
+      expect(graph.getEdgeValue('b', 'a')).toBe('foo');
     });
   });
 
   describe('getEdgeValue', () => {
     it("should return undefined if the edge isn't part of the graph", () => {
-      expect(graph.getEdgeValue('a', 'b')).toBeUndefined();
-      expect(graph.getEdgeValue('b', 'c')).toBeUndefined();
+      expect(digraph.getEdgeValue('a', 'b')).toBeUndefined();
+      expect(digraph.getEdgeValue('b', 'c')).toBeUndefined();
     });
 
     it('should return the value of the edge if it is part of the graph', () => {
-      graph.setEdge('a', 'b', {
+      digraph.setEdge('a', 'b', {
         foo: 'bar',
       });
 
-      expect(graph.getEdgeValue('a', 'b')).toEqual({
+      expect(digraph.getEdgeValue('a', 'b')).toEqual({
         foo: 'bar',
       });
-      expect(graph.getEdgeValue('b', 'a')).toBeUndefined();
+      expect(digraph.getEdgeValue('b', 'a')).toBeUndefined();
     });
 
     it("should return an edge in either direction in an undirected graph", function() {
-      const undigraph = createGraph({
+      const graph = createGraph({
         events,
         directed: false,
       });
 
-      undigraph.setEdge("a", "b", { foo: "bar" });
-      expect(undigraph.getEdgeValue("a", "b")).toEqual({ foo: "bar" });
-      expect(undigraph.getEdgeValue("b", "a")).toEqual({ foo: "bar" });
+      graph.setEdge("a", "b", { foo: "bar" });
+      expect(graph.getEdgeValue("a", "b")).toEqual({ foo: "bar" });
+      expect(graph.getEdgeValue("b", "a")).toEqual({ foo: "bar" });
     });
   });
 
   describe('hasEdge', () => {
     it("should return false if the edge isn't part of the graph", () => {
-      expect(graph.hasEdge('a', 'b')).toBe(false);
+      expect(digraph.hasEdge('a', 'b')).toBe(false);
     });
 
     it('should return true if edge it is part of the graph', () => {
-      graph.setEdge('a', 'b');
+      digraph.setEdge('a', 'b');
 
-      expect(graph.hasEdge('a', 'b')).toBe(true);
+      expect(digraph.hasEdge('a', 'b')).toBe(true);
     });
   });
 
   describe('removeEdge', () => {
     it('should has no effect if the edge is not in the graph', () => {
-      graph.removeEdge('a', 'b');
+      digraph.removeEdge('a', 'b');
 
-      expect(graph.hasEdge('a', 'b')).toBe(false);
-      expect(graph.edgesCount()).toBe(0);
+      expect(digraph.hasEdge('a', 'b')).toBe(false);
+      expect(digraph.edgesCount()).toBe(0);
     });
 
     it('should remove neighbors', () => {
-      graph.setEdge('a', 'b');
-      graph.removeEdge('a', 'b');
+      digraph.setEdge('a', 'b');
+      digraph.removeEdge('a', 'b');
 
-      expect(graph.neighbors('b')).toEqual([]);
+      expect(digraph.neighbors('b')).toEqual([]);
     });
 
     it('should works with undirected graphs', () => {
-      const undigraph = createGraph({
+      const graph = createGraph({
         events,
         directed: false,
       });
 
-      undigraph.setEdge('h', 'g');
-      undigraph.removeEdge('g', 'h');
-      expect(undigraph.neighbors('g')).toEqual([]);
-      expect(undigraph.neighbors('h')).toEqual([]);
+      graph.setEdge('h', 'g');
+      graph.removeEdge('g', 'h');
+      expect(graph.neighbors('g')).toEqual([]);
+      expect(graph.neighbors('h')).toEqual([]);
     })
   });
 
-  describe('removeEdgeByObj', () => {
+  describe('removeEdgeByObj', () => {   
     it('should has no effect if the edge is not in the graph', () => {
-      graph.removeEdgeByObj({
+      digraph.removeEdgeByObj({
         from: 'a',
         to: 'b',
       });
 
-      expect(graph.hasEdge('a', 'b')).toBe(false);
-      expect(graph.edgesCount()).toBe(0);
+      expect(digraph.hasEdge('a', 'b')).toBe(false);
+      expect(digraph.edgesCount()).toBe(0);
     });
 
     it('should remove neighbors', () => {
-      graph.setEdge('a', 'b');
-      graph.removeEdgeByObj({
+      digraph.setEdge('a', 'b');
+      digraph.removeEdgeByObj({
         from: 'a',
         to: 'b',
       });
 
-      expect(graph.neighbors('b')).toEqual([]);
+      expect(digraph.neighbors('b')).toEqual([]);
     });
 
     it('should works with undirected graphs', () => {
-      const undigraph = createGraph({
+      const graph = createGraph({
         events,
         directed: false,
       });
 
-      undigraph.setEdge('h', 'g');
-      undigraph.removeEdgeByObj({
+      graph.setEdge('h', 'g');
+      graph.removeEdgeByObj({
         from: 'g',
         to: 'h'
       });
-      expect(undigraph.neighbors('g')).toEqual([]);
-      expect(undigraph.neighbors('h')).toEqual([]);
+      expect(graph.neighbors('g')).toEqual([]);
+      expect(graph.neighbors('h')).toEqual([]);
     })
   });
 });
