@@ -1,4 +1,4 @@
-import { createGraph, createOrientedGraph } from '../Graph';
+import { createGraph, IDirectedGraph } from '../Graph';
 
 const getEvents = () => ({
   onAddNode: jest.fn(),
@@ -7,11 +7,14 @@ const getEvents = () => ({
 
 describe('Graph', () => {
   let events = getEvents();
-  let graph: ReturnType<typeof createGraph>;
+  let graph: IDirectedGraph<unknown, unknown>;
 
   beforeEach(() => {
     events = getEvents();
-    graph = createGraph(events);
+    graph = createGraph({
+      events,
+      directed: true,
+    });
   });
 
   it('should have a correct initial state', function() {
@@ -34,6 +37,26 @@ describe('Graph', () => {
         ['a', {}],
         ['b', {}],
       ]);
+    });
+  });
+
+  describe('sources', () => {
+    it('should return nodes in the graph that have no in-edges', () => {
+      graph.setEdge('a', 'b');
+      graph.setEdge('b', 'c');
+      graph.setNode('d');
+
+      expect(graph.sources().sort()).toEqual(['a', 'd']);
+    });
+  });
+
+  describe('sinks', () => {
+    it('should nodes in the graph that have no out-edges', () => {
+      graph.setEdge('a', 'b');
+      graph.setEdge('b', 'c');
+      graph.setNode('d');
+
+      expect(graph.sinks()).toEqual(['c', 'd']);
     });
   });
 
@@ -164,8 +187,7 @@ describe('Graph', () => {
       expect(graph.neighbors('a')).toEqual([]);
     });
 
-    // TODO: fix
-    test.skip('should return the neighbors of a node', () => {
+    it('should return the neighbors of a node', () => {
       graph.setEdge('a', 'b');
       graph.setEdge('b', 'c');
       graph.setEdge('a', 'a');
@@ -173,6 +195,38 @@ describe('Graph', () => {
       expect(graph.neighbors('a').sort()).toEqual(['a', 'b']);
       expect(graph.neighbors('b').sort()).toEqual(['a', 'c']);
       expect(graph.neighbors('c').sort()).toEqual(['b']);
+    });
+  });
+
+  describe('predecessors', function() {
+    it('should return undefined for a node that is not in the graph', function() {
+      expect(graph.predecessors('a')).toBeUndefined();
+    });
+
+    it('should return the predecessors of a node', function() {
+      graph.setEdge('a', 'b');
+      graph.setEdge('b', 'c');
+      graph.setEdge('a', 'a');
+
+      expect(graph.predecessors('a').sort()).toEqual(['a']);
+      expect(graph.predecessors('b').sort()).toEqual(['a']);
+      expect(graph.predecessors('c').sort()).toEqual(['b']);
+    });
+  });
+
+  describe('successors', function() {
+    it('should return undefined for a node that is not in the graph', function() {
+      expect(graph.successors('a')).toEqual([]);
+    });
+
+    it('should return the successors of a node', function() {
+      graph.setEdge('a', 'b');
+      graph.setEdge('b', 'c');
+      graph.setEdge('a', 'a');
+
+      expect(graph.successors('a').sort()).toEqual(['a', 'b']);
+      expect(graph.successors('b').sort()).toEqual(['c']);
+      expect(graph.successors('c').sort()).toEqual([]);
     });
   });
 
@@ -248,6 +302,18 @@ describe('Graph', () => {
       expect(graph.hasEdge('a', 'b')).toBe(true);
       expect(graph.hasEdge('b', 'a')).toBe(false);
     });
+
+    it('should handle undirected graph edges', () => {
+      const undigraph = createGraph({
+        events,
+        directed: false,
+      });
+
+      undigraph.setEdge('a', 'b', 'foo');
+
+      expect(undigraph.getEdgeValue('a', 'b')).toBe('foo');
+      expect(undigraph.getEdgeValue('b', 'a')).toBe('foo');
+    });
   });
 
   describe('getEdgeValue', () => {
@@ -265,6 +331,17 @@ describe('Graph', () => {
         foo: 'bar',
       });
       expect(graph.getEdgeValue('b', 'a')).toBeUndefined();
+    });
+
+    it("should return an edge in either direction in an undirected graph", function() {
+      const undigraph = createGraph({
+        events,
+        directed: false,
+      });
+
+      undigraph.setEdge("a", "b", { foo: "bar" });
+      expect(undigraph.getEdgeValue("a", "b")).toEqual({ foo: "bar" });
+      expect(undigraph.getEdgeValue("b", "a")).toEqual({ foo: "bar" });
     });
   });
 
@@ -294,6 +371,18 @@ describe('Graph', () => {
 
       expect(graph.neighbors('b')).toEqual([]);
     });
+
+    it('should works with undirected graphs', () => {
+      const undigraph = createGraph({
+        events,
+        directed: false,
+      });
+
+      undigraph.setEdge('h', 'g');
+      undigraph.removeEdge('g', 'h');
+      expect(undigraph.neighbors('g')).toEqual([]);
+      expect(undigraph.neighbors('h')).toEqual([]);
+    })
   });
 
   describe('removeEdgeByObj', () => {
@@ -316,117 +405,20 @@ describe('Graph', () => {
 
       expect(graph.neighbors('b')).toEqual([]);
     });
-  });
-});
 
-describe('Digraph', () => {
-  let events = getEvents();
-  let graph: ReturnType<typeof createOrientedGraph>;
+    it('should works with undirected graphs', () => {
+      const undigraph = createGraph({
+        events,
+        directed: false,
+      });
 
-  beforeEach(() => {
-    events = getEvents();
-    graph = createOrientedGraph(events);
-  });
-
-  it('should have a correct initial state', function() {
-    expect(graph.nodesCount()).toBe(0);
-    expect(graph.edgesCount()).toBe(0);
-    expect(events.onAddNode.mock.calls.length).toBe(0);
-    expect(events.onRemoveNode.mock.calls.length).toBe(0);
-  });
-
-  describe('nodes', () => {
-    it('should is empty if there are nodes in the graph', () => {
-      expect(graph.nodes()).toEqual([]);
-    });
-    it('should return the ids and values of nodes in the graph', () => {
-      graph.setNode('a', {});
-      graph.setNode('b', {});
-
-      expect(graph.nodes()).toEqual([
-        ['a', {}],
-        ['b', {}],
-      ]);
-    });
-  });
-
-  describe('sources', () => {
-    it('should return nodes in the graph that have no in-edges', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.setNode('d');
-
-      expect(graph.sources()).toEqual(['a', 'd']);
-    });
-  });
-
-  describe('sinks', () => {
-    it('should nodes in the graph that have no out-edges', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.setNode('d');
-
-      expect(graph.sinks()).toEqual(['c', 'd']);
-    });
-  });
-
-  describe('removeNode', () => {
-    it('should does nothing if the node is not in the graph', () => {
-      expect(graph.nodesCount()).toBe(0);
-
-      graph.removeNode('a');
-
-      expect(graph.hasNode('a')).toBe(false);
-      expect(graph.nodesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(0);
-    });
-
-    it('should remove the node if it is in the graph', () => {
-      graph.setEdge('a', 'b');
-      graph.removeNode('a');
-
-      expect(graph.hasNode('a')).toBe(false);
-      expect(graph.nodesCount()).toBe(1);
-      expect(graph.predecessors('a')).toEqual([]);
-      expect(graph.successors('b')).toEqual([]);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
-    });
-
-    it('should is idempotent', () => {
-      graph.setNode('a');
-      graph.removeNode('a');
-      graph.removeNode('a');
-
-      expect(graph.hasNode('a')).toBe(false);
-      expect(graph.nodesCount()).toBe(0);
-      expect(graph.predecessors('a')).toEqual([]);
-      expect(graph.successors('b')).toEqual([]);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
-    });
-
-    it('should remove edges incident on the node', () => {
-      graph.setEdge('a', 'b');
-      graph.setEdge('b', 'c');
-      graph.removeNode('b');
-
-      expect(graph.edgesCount()).toBe(0);
-      expect(graph.predecessors('a')).toEqual([]);
-      expect(graph.successors('b')).toEqual([]);
-      expect(graph.successors('c')).toEqual([]);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
-    });
-  });
-
-  describe('setEdge', () => {
-    // TODO: fix
-    test.skip('should handle undirected graph edges', () => {
-      // @ts-ignore
-      graph = createGraph(events);
-
-      graph.setEdge('a', 'b', 'foo');
-
-      expect(graph.getEdgeValue('a', 'b')).toBe('foo');
-      expect(graph.getEdgeValue('b', 'a')).toBe('foo');
-    });
+      undigraph.setEdge('h', 'g');
+      undigraph.removeEdgeByObj({
+        from: 'g',
+        to: 'h'
+      });
+      expect(undigraph.neighbors('g')).toEqual([]);
+      expect(undigraph.neighbors('h')).toEqual([]);
+    })
   });
 });
