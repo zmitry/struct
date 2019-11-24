@@ -1,6 +1,6 @@
 import {Optional} from 'utility-types';
 
-import { upsertSet } from './helpers';
+import { upsertSet, mapUnique } from './helpers';
 
 //#region types
 export const meta = Symbol();
@@ -267,11 +267,11 @@ export function createGraph<N, E>({
     },
     neighbors(n: string) {
       const outItems = outNodes.get(n)?.values();
-      const inItems = outNodes.get(n)?.values();
+      const inItems = inNodes.get(n)?.values();
       if (outItems && inItems) {
-        return Array.from(outItems).concat(Array.from(inItems));
+        return mapUnique(Array.from(outItems).concat(Array.from(inItems)));
       }
-      return Array.from(outItems || inItems || []);
+      return mapUnique(Array.from(outItems || inItems || []));
     },
     orphans() {
       return base.filterNodes(k => !inNodes.has(k) && !outNodes.has(k));
@@ -280,10 +280,10 @@ export function createGraph<N, E>({
   if (directed) {
     Object.assign(graph, {
       predecessors(n: string) {
-        return Array.from(inNodes.get(n)?.values() || []);
+        return mapUnique(Array.from(inNodes.get(n)?.values() || []));
       },
       successors(n: string) {
-        return Array.from(outNodes.get(n)?.values() || []);
+        return mapUnique(Array.from(outNodes.get(n)?.values() || []));
       },
       sources() {
         return base.filterNodes(k => !inNodes.has(k));
