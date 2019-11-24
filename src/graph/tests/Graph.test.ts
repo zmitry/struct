@@ -321,49 +321,112 @@ describe('Graph', () => {
 
 describe('Digraph', () => {
   let events = getEvents();
+  let graph: ReturnType<typeof createOrientedGraph>;
 
   beforeEach(() => {
     events = getEvents();
+    graph = createOrientedGraph(events);
   });
 
   it('should have a correct initial state', function() {
-    const graph = createOrientedGraph(events);
-
     expect(graph.nodesCount()).toBe(0);
     expect(graph.edgesCount()).toBe(0);
     expect(events.onAddNode.mock.calls.length).toBe(0);
     expect(events.onRemoveNode.mock.calls.length).toBe(0);
   });
 
-  it('should return the ids and values of nodes in the graph', () => {
-    const graph = createOrientedGraph(events);
+  describe('nodes', () => {
+    it('should is empty if there are nodes in the graph', () => {
+      expect(graph.nodes()).toEqual([]);
+    });
+    it('should return the ids and values of nodes in the graph', () => {
+      graph.setNode('a', {});
+      graph.setNode('b', {});
 
-    graph.setNode('a', {});
-    graph.setNode('b', {});
-
-    expect(graph.nodes()).toEqual([
-      ['a', {}],
-      ['b', {}],
-    ]);
+      expect(graph.nodes()).toEqual([
+        ['a', {}],
+        ['b', {}],
+      ]);
+    });
   });
 
-  it('should return nodes in the graph that have no in-edges', () => {
-    const graph = createOrientedGraph(events);
+  describe('sources', () => {
+    it('should return nodes in the graph that have no in-edges', () => {
+      graph.setEdge('a', 'b');
+      graph.setEdge('b', 'c');
+      graph.setNode('d');
 
-    graph.setEdge('a', 'b');
-    graph.setEdge('b', 'c');
-    graph.setNode('d');
-
-    expect(graph.sources()).toEqual(['a', 'd']);
+      expect(graph.sources()).toEqual(['a', 'd']);
+    });
   });
 
-  it('should nodes in the graph that have no out-edges', () => {
-    const graph = createOrientedGraph(events);
+  describe('sinks', () => {
+    it('should nodes in the graph that have no out-edges', () => {
+      graph.setEdge('a', 'b');
+      graph.setEdge('b', 'c');
+      graph.setNode('d');
 
-    graph.setEdge('a', 'b');
-    graph.setEdge('b', 'c');
-    graph.setNode('d');
+      expect(graph.sinks()).toEqual(['c', 'd']);
+    });
+  });
 
-    expect(graph.sinks()).toEqual(['c', 'd']);
+  describe('removeNode', () => {
+    it('should does nothing if the node is not in the graph', () => {
+      expect(graph.nodesCount()).toBe(0);
+
+      graph.removeNode('a');
+
+      expect(graph.hasNode('a')).toBe(false);
+      expect(graph.nodesCount()).toBe(0);
+      expect(events.onRemoveNode.mock.calls.length).toBe(0);
+    });
+
+    it('should remove the node if it is in the graph', () => {
+      graph.setEdge('a', 'b');
+      graph.removeNode('a');
+
+      expect(graph.hasNode('a')).toBe(false);
+      expect(graph.nodesCount()).toBe(1);
+      expect(graph.predecessors('a')).toEqual([]);
+      expect(graph.successors('b')).toEqual([]);
+      expect(events.onRemoveNode.mock.calls.length).toBe(1);
+    });
+
+    it('should is idempotent', () => {
+      graph.setNode('a');
+      graph.removeNode('a');
+      graph.removeNode('a');
+
+      expect(graph.hasNode('a')).toBe(false);
+      expect(graph.nodesCount()).toBe(0);
+      expect(graph.predecessors('a')).toEqual([]);
+      expect(graph.successors('b')).toEqual([]);
+      expect(events.onRemoveNode.mock.calls.length).toBe(1);
+    });
+
+    it('should remove edges incident on the node', () => {
+      graph.setEdge('a', 'b');
+      graph.setEdge('b', 'c');
+      graph.removeNode('b');
+
+      expect(graph.edgesCount()).toBe(0);
+      expect(graph.predecessors('a')).toEqual([]);
+      expect(graph.successors('b')).toEqual([]);
+      expect(graph.successors('c')).toEqual([]);
+      expect(events.onRemoveNode.mock.calls.length).toBe(1);
+    });
+  });
+
+  describe('setEdge', () => {
+    // TODO: fix
+    test.skip('should handle undirected graph edges', () => {
+      // @ts-ignore
+      graph = createGraph(events);
+
+      graph.setEdge('a', 'b', 'foo');
+
+      expect(graph.getEdgeValue('a', 'b')).toBe('foo');
+      expect(graph.getEdgeValue('b', 'a')).toBe('foo');
+    });
   });
 });
