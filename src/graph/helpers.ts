@@ -10,4 +10,4 @@ export function upsertSet<K, V>(map: Map<K, Set<V>>, key: K, value: V) {
   }
 }
 
-export const mapUnique = <T>(arr: T[]): T[] => [...(new Set(arr))];
+export const mapUnique = <T>(arr: T[]): T[] => Array.from(new Set(arr));
