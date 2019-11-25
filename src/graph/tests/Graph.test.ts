@@ -192,7 +192,7 @@ describe('Graph', () => {
       digraph.setEdge('b', 'c');
       digraph.setEdge('a', 'a');
 
-      expect(digraph.neighbors('a').sort()).toEqual(['a', 'a', 'b']);
+      expect(digraph.neighbors('a').sort()).toEqual(['a', 'b']);
       expect(digraph.neighbors('b').sort()).toEqual(['a', 'c']);
       expect(digraph.neighbors('c').sort()).toEqual(['b']);
     });
@@ -333,15 +333,15 @@ describe('Graph', () => {
       expect(digraph.getEdgeValue('b', 'a')).toBeUndefined();
     });
 
-    it("should return an edge in either direction in an undirected graph", function() {
+    it('should return an edge in either direction in an undirected graph', function() {
       const graph = createGraph({
         events,
         directed: false,
       });
 
-      graph.setEdge("a", "b", { foo: "bar" });
-      expect(graph.getEdgeValue("a", "b")).toEqual({ foo: "bar" });
-      expect(graph.getEdgeValue("b", "a")).toEqual({ foo: "bar" });
+      graph.setEdge('a', 'b', { foo: 'bar' });
+      expect(graph.getEdgeValue('a', 'b')).toEqual({ foo: 'bar' });
+      expect(graph.getEdgeValue('b', 'a')).toEqual({ foo: 'bar' });
     });
   });
 
@@ -382,10 +382,10 @@ describe('Graph', () => {
       graph.removeEdge('g', 'h');
       expect(graph.neighbors('g')).toEqual([]);
       expect(graph.neighbors('h')).toEqual([]);
-    })
+    });
   });
 
-  describe('removeEdgeByObj', () => {   
+  describe('removeEdgeByObj', () => {
     it('should has no effect if the edge is not in the graph', () => {
       digraph.removeEdgeByObj({
         from: 'a',
@@ -415,10 +415,10 @@ describe('Graph', () => {
       graph.setEdge('h', 'g');
       graph.removeEdgeByObj({
         from: 'g',
-        to: 'h'
+        to: 'h',
       });
       expect(graph.neighbors('g')).toEqual([]);
       expect(graph.neighbors('h')).toEqual([]);
-    })
+    });
   });
 });

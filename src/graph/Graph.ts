@@ -1,4 +1,4 @@
-import {Optional} from 'utility-types';
+import { Optional } from 'utility-types';
 
 import { upsertSet, mapUnique } from './helpers';
 
@@ -234,7 +234,6 @@ export function createGraph<N, E>({
     hasNode: base.hasNode,
     removeNodeValue: base.removeNodeValue,
     getEdgeValue: base.getEdgeValue,
-    removeEdgeByObj: base.removeEdgeByObj,
     hasEdge: base.hasEdge,
     nodes: base.nodes,
     edges: base.edges,
@@ -251,12 +250,24 @@ export function createGraph<N, E>({
     setEdge(from: string, to: string, value?: E) {
       ({ from, to, value } = reorderEdge(from, to, value));
       const hasEdge = base.setEdge(from, to, value);
+      if (!directed) {
+        base.setEdge(to, from, value);
+      }
       upsertSet(inNodes, to, from);
       upsertSet(outNodes, from, to);
       return hasEdge;
     },
     // it doesn't not remove node itself
     removeEdge(from: string, to: string) {
+      ({ from, to } = reorderEdge(from, to));
+      const hasEdge = base.removeEdge(from, to);
+      if (hasEdge) {
+        inNodes.get(to)?.delete(from);
+        outNodes.get(from)?.delete(to);
+      }
+      return hasEdge;
+    },
+    removeEdgeByObj({ from, to }: Optional<GraphEdge<E>, 'value'>) {
       ({ from, to } = reorderEdge(from, to));
       const hasEdge = base.removeEdge(from, to);
       if (hasEdge) {
