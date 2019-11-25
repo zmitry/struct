@@ -1,0 +1,17 @@
+name: Node CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Tests
+      uses: actions/setup-node@v1
+    - name: npm install, build, and test
+      run: |
+        yarn
+        yarn test
+      env:
+        CI: true
