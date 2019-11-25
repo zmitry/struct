@@ -9,3 +9,5 @@ export function upsertSet<K, V>(map: Map<K, Set<V>>, key: K, value: V) {
     map.set(key, old.add(value));
   }
 }
+
+export const mapUnique = <T>(arr: T[]): T[] => [...(new Set(arr))];
