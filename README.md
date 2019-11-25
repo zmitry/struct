@@ -1,11 +1,9 @@
 <div align="center">
   <h1>
     <br/>
-    <br/>
    <img src="./docs/struct-logo.svg">
     <br />
     Data structures library
-    <br />
     <br />
     <br />
     <br />
@@ -38,6 +36,12 @@
   - [`createCompoundGraph`](./src/graph/Readme.md) &mdash; hierarchal graph
     <br/>
     <br/>
+- [**Advanced graph algorithms**](./src/graph-alg/Readme.md)
+  - [`dfs`](./src/graph-alg/dfs.ts) &mdash; depth first graph traversal
+  - [`topologicalSort`](./src/graph-alg/topological-stort-kahn.ts) &mdash; Kahn topological sort
+  - [`connectedComponents`](./src/graph-alg/components.ts) &mdash; connected components algorithm
+    <br/>
+    <br/>
 - [**Primitive**](./src/index.ts)
   - [`createHeap`](./src/pairing-heap.ts) &mdash; Pairing heap implementation.
   - [`LRUCache`](./src/LRUCache.ts) &mdash; LRU cache implementation
@@ -45,29 +49,13 @@
     <br/>
 
 <br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
 
-<p align="center">
+<!-- <p align="center">
   <a href="./docs/Usage.md"><strong>Usage</strong></a> &mdash; how to import.
   <br />
   <a href="https://opencollective.com/@zmitry/struct/contribute"><strong>Support</strong></a> &mdash; add yourself to backer list below.
-</p>
+</p> -->
 
-<br />
-<br />
-<br />
-<br />
-<br />
-
-[img-demo]: https://img.shields.io/badge/demo-%20%20%20%F0%9F%9A%80-green.svg
-
-<br />
-<br />
 <br />
 <br />
 <br />
@@ -76,11 +64,10 @@
 <h2>Roadmap</h2>
 </div>
 
-- LRU Cache
+- [x] LRU Cache
 - LRU with ttl
-- Graph data structure without parent/multigraph support
-- Topological sort
-- Pairing heap simple
-- Pairing heap using linked list
+- [x] Graph data structure without parent/multigraph support
+- [x] Topological sort
+- [x] Pairing heap using linked list
 - Priority queue
 - link-cut tree
