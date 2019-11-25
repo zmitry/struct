@@ -1,4 +1,4 @@
-import { createGraph, IDirectedGraph } from '../Graph';
+import { createGraph, IDirectedGraph } from '../graph';
 
 const getEvents = () => ({
   onAddNode: jest.fn(),
