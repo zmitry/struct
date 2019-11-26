@@ -1,7 +1,7 @@
 <div align="center">
   <h1>
     <br/>
-   <img src="./docs/logo.svg">
+   <img src="https://raw.githubusercontent.com/zmitry/struct/master/docs/logo.svg">
     <br />
     Data structures library
     <br />
