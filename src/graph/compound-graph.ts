@@ -35,6 +35,9 @@ export function createHierarchy(): IHierarchy {
       }
       const parent = hierarchy.getParent(node);
       hierarchyParent.delete(node);
+      for (const child of hierarchy.getChildren(node)) {
+        hierarchy.setParent(child, ROOT_NODE);
+      }
       const childSet = hierarchyChildren.get(parent);
       childSet?.delete(node);
     },
