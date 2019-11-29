@@ -13,13 +13,13 @@ exports[`dot converted basic 1`] = `
 `;
 
 exports[`dot converted compound 1`] = `
-"graph {
+"digraph {
   \\"1\\"
   \\"2\\" [\\"color\\"=\\"red\\"]
   \\"3\\"
   \\"4\\"
-  \\"1\\"--\\"2\\"
-  \\"3\\"--\\"4\\"
+  \\"1\\"->\\"2\\"
+  \\"3\\"->\\"4\\"
   subgraph \\"3\\" {
     \\"4\\";'
   }

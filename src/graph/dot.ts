@@ -1,24 +1,16 @@
-import { IUndirectedGraph, meta } from './graph';
+import { IUndirectedGraph, GraphReturn } from './graph';
 import { IHierarchy, ROOT_NODE } from './compound-graph';
 
 type Writer = ReturnType<typeof makeWriter>;
-export function toDot<N, E>(
-  g: IUndirectedGraph<N, E> & IHierarchy,
-  args: { intend?: string; compound: true }
-): string;
-
-export function toDot<N, E>(
-  g: IUndirectedGraph<N, E>,
-  args: { intend?: string; compound?: false }
-): string;
+type Args = { intend?: string; compound?: boolean; directed?: boolean };
+export function toDot<N, E>(g: GraphReturn<N, E>, args: Args): string;
 
 export function toDot<N, E>(
   g: any,
-  { intend = ' ', compound }: { intend?: string; compound?: boolean }
+  { intend = ' ', compound, directed }: Args
 ) {
   const graph: IUndirectedGraph<N, E> & IHierarchy = g;
   const writer = makeWriter(intend);
-  const directed = g[meta]?.directed;
   const ec = directed ? '->' : '--';
   writer.writeBlock(directed ? 'digraph' : 'graph', () => {
     graph.nodes().forEach(([key, value]) => {
