@@ -1,4 +1,10 @@
-import { createGraph, IDirectedGraph } from '../graph';
+import {
+  createGraph,
+  IDirectedGraph,
+  ROOT_NODE,
+  mapToCompoundGraph,
+  ICompoundGraph,
+} from '../graph';
 
 const getEvents = () => ({
   onAddNode: jest.fn(),
@@ -419,6 +425,146 @@ describe('Graph', () => {
       });
       expect(graph.neighbors('g')).toEqual([]);
       expect(graph.neighbors('h')).toEqual([]);
+    });
+  });
+});
+
+describe('CompoundGraph', () => {
+  let events = getEvents();
+  let compoundDigraph: ICompoundGraph & IDirectedGraph<unknown, unknown>;
+
+  beforeEach(() => {
+    events = getEvents();
+    const digraph = createGraph({
+      events,
+      directed: true,
+    });
+    compoundDigraph = mapToCompoundGraph(digraph);
+  });
+
+  it('should includes subgraphs', function() {
+    compoundDigraph.setParent('a', 'parent');
+
+    expect(compoundDigraph.getParent('a')).toEqual('parent');
+  });
+
+  it('should includes multi-level subgraphs', function() {
+    compoundDigraph.setParent('a', 'parent');
+    compoundDigraph.setParent('parent', 'root');
+
+    expect(compoundDigraph.getParent('a')).toEqual('parent');
+    expect(compoundDigraph.getParent('parent')).toEqual('root');
+  });
+
+  describe('removeHierarchyNode', () => {
+    it('should remove parent / child relationships for the node', () => {
+      compoundDigraph.setParent('c', 'b');
+      compoundDigraph.setParent('b', 'a');
+
+      compoundDigraph.removeHierarchyNode('b');
+
+      expect(compoundDigraph.getParent('b')).toBe(ROOT_NODE);
+      expect(compoundDigraph.getChildren('b')).toEqual([]);
+      expect(compoundDigraph.getChildren('a')).toEqual(
+        expect.not.arrayContaining(['b'])
+      );
+      expect(compoundDigraph.getParent('c')).toBe(ROOT_NODE);
+    });
+  });
+
+  describe('setParent', () => {
+    it('should create the parent if it does not exist', () => {
+      compoundDigraph.setNode('a');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.hasNode('parent')).toBe(true);
+      expect(compoundDigraph.getParent('a')).toBe('parent');
+    });
+
+    it('should create the child if it does not exist', () => {
+      compoundDigraph.setNode('parent');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.hasNode('a')).toBe(true);
+      expect(compoundDigraph.getParent('a')).toBe('parent');
+    });
+
+    it('should has the parent as ROOT_NODE constant if it has never been invoked', () => {
+      compoundDigraph.setNode('a');
+      expect(compoundDigraph.getParent('a')).toBe(ROOT_NODE);
+    });
+
+    it('should move the node from the previous parent', () => {
+      compoundDigraph.setParent('a', 'parent');
+      compoundDigraph.setParent('a', 'parent2');
+
+      expect(compoundDigraph.getParent('a')).toBe('parent2');
+      expect(compoundDigraph.getChildren('parent')).toEqual([]);
+      expect(compoundDigraph.getChildren('parent2')).toEqual(['a']);
+    });
+  });
+
+  describe('getParent', function() {
+    it('should return ROOT_NODE if the graph is not compound', function() {
+      expect(compoundDigraph.getParent('a')).toEqual(ROOT_NODE);
+    });
+
+    it('should return ROOT_NODE if the node is not in the graph', function() {
+      expect(compoundDigraph.getParent('a')).toEqual(ROOT_NODE);
+    });
+
+    it('should default to ROOT_NODE for new nodes', function() {
+      compoundDigraph.setNode('a');
+      expect(compoundDigraph.getParent('a')).toEqual(ROOT_NODE);
+    });
+
+    it('should returns the current parent assignment', function() {
+      compoundDigraph.setNode('a');
+      compoundDigraph.setNode('parent');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.getParent('a')).toBe('parent');
+    });
+  });
+
+  describe('getChildren', () => {
+    it('should return undefined if the node is not in the graph', () => {
+      expect(compoundDigraph.getChildren('a')).toEqual([]);
+    });
+
+    it('should default to en empty list for new nodes', () => {
+      compoundDigraph.setNode('a');
+      expect(compoundDigraph.getChildren('a')).toEqual([]);
+    });
+
+    it('should return undefined for a non-compound graph without the node', () => {
+      expect(compoundDigraph.getChildren('a')).toEqual([]);
+    });
+
+    it('should return children for the node', () => {
+      compoundDigraph.setParent('a', 'parent');
+      compoundDigraph.setParent('b', 'parent');
+      expect(compoundDigraph.getChildren('parent').sort()).toEqual(['a', 'b']);
+    });
+
+    // TODO: fix
+    test.skip('should return all nodes without a parent when the parent is not set', () => {
+      compoundDigraph.setNode('a');
+      compoundDigraph.setNode('b');
+      compoundDigraph.setNode('c');
+      compoundDigraph.setNode('parent');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.getChildren().sort()).toEqual([
+        'b',
+        'c',
+        'parent',
+      ]);
+      expect(compoundDigraph.getChildren(undefined).sort()).toEqual([
+        'b',
+        'c',
+        'parent',
+      ]);
     });
   });
 });
