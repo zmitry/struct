@@ -2,6 +2,7 @@ import { Optional } from 'utility-types';
 
 import { upsertSet, mapUnique } from './helpers';
 
+export const ROOT_NODE = '_____root_graph_node_____';
 //#region types
 export const meta = Symbol();
 interface IBaseGraphApi<N, E> {
@@ -82,15 +83,18 @@ export interface IDirectedGraph<N, E> extends IUndirectedGraph<N, E> {
   };
 }
 
+export interface ICompoundGraph {
+  setParent(node: string, parent: string): void;
+  getParent(node: string): string;
+  removeHierarchyNode(node: string): void;
+  getChildren(node?: string): string[];
+}
+
 type GraphEdge<T> = { to: string; from: string; value?: T };
 
-type Events = {
-  onAddNode?: (k: string) => void;
-  onRemoveNode?: (k: string) => void;
-};
 //#endregion
 
-function createBaseGraph<N, E>(events: Events) {
+function createBaseGraph<N, E>() {
   const nodesMap = new Map<string, N>();
   const edgesMap = new Map<string, GraphEdge<E>>();
 
@@ -103,9 +107,6 @@ function createBaseGraph<N, E>(events: Events) {
     },
     setNode(n: string, value?: N) {
       const hasNode = graph.hasNode(n);
-      if (!hasNode) {
-        events.onAddNode?.(n);
-      }
 
       if (hasNode && typeof value === 'undefined') {
         return hasNode;
@@ -121,7 +122,6 @@ function createBaseGraph<N, E>(events: Events) {
       if (!nodesMap.has(n)) {
         return false;
       }
-      events.onRemoveNode?.(n);
       nodesMap.delete(n);
       for (let edge of edgesMap.values()) {
         if (edge.from === n || edge.to === n) {
@@ -201,25 +201,20 @@ function createBaseGraph<N, E>(events: Events) {
 }
 
 export function createGraph<N, E>(arg: {
-  events: Events;
   directed: true;
 }): IDirectedGraph<N, E>;
 export function createGraph<N, E>(arg: {
-  events: Events;
   directed: false;
 }): IUndirectedGraph<N, E>;
 
 export function createGraph<N, E>({
-  events = {},
   directed,
 }: {
   directed?: boolean;
-
-  events?: Events;
 }): IDirectedGraph<N, E> {
   const inNodes = new Map<string, Set<string>>();
   const outNodes = new Map<string, Set<string>>();
-  const base = createBaseGraph<N, E>(events);
+  const base = createBaseGraph<N, E>();
   function reorderEdge<T>(from: string, to: string, value?: T) {
     if (!directed && from < to) {
       let tmp = from;
@@ -282,7 +277,7 @@ export function createGraph<N, E>({
       if (outItems && inItems) {
         return mapUnique(Array.from(outItems).concat(Array.from(inItems)));
       }
-      return mapUnique(Array.from(outItems || inItems || []));
+      return Array.from(outItems || inItems || []);
     },
     orphans() {
       return base.filterNodes(k => !inNodes.has(k) && !outNodes.has(k));
@@ -291,10 +286,10 @@ export function createGraph<N, E>({
   if (directed) {
     Object.assign(graph, {
       predecessors(n: string) {
-        return mapUnique(Array.from(inNodes.get(n)?.values() || []));
+        return Array.from(inNodes.get(n)?.values() || []);
       },
       successors(n: string) {
-        return mapUnique(Array.from(outNodes.get(n)?.values() || []));
+        return Array.from(outNodes.get(n)?.values() || []);
       },
       sources() {
         return base.filterNodes(k => !inNodes.has(k));
@@ -305,6 +300,72 @@ export function createGraph<N, E>({
     } as Partial<IDirectedGraph<N, E>>);
   }
   return graph as IDirectedGraph<N, E>;
+}
+
+export function createCompoundGraph<N, E>(arg: {
+  directed: true;
+}): ICompoundGraph & IDirectedGraph<N, E>;
+export function createCompoundGraph<N, E>(arg: {
+  directed: false;
+}): ICompoundGraph & IUndirectedGraph<N, E>;
+
+export function createCompoundGraph<N, E>({
+  directed,
+}: {
+  directed: true | false;
+}): ICompoundGraph & (IDirectedGraph<N, E> | IUndirectedGraph<N, E>) {
+  const hierarchyChildren = new Map<string, Set<string>>();
+  const hierarchyParent = new Map<string, string>();
+  const base: IDirectedGraph<N, E> | IUndirectedGraph<N, E> = directed
+    ? createGraph({
+        directed: true,
+      })
+    : createGraph({
+        directed: false,
+      });
+
+  const graph: ICompoundGraph & typeof base = {
+    ...base,
+    setNode(node: string, value?: N) {
+      const hasNode = base.setNode(node, value);
+      upsertSet(hierarchyChildren, ROOT_NODE, node);
+      hierarchyParent.set(node, ROOT_NODE);
+
+      return hasNode;
+    },
+    setParent(node: string, parent: string = ROOT_NODE) {
+      // todo make it optimal
+      for (let [, v] of hierarchyChildren) {
+        v.delete(node);
+      }
+
+      graph.setNode(parent);
+      graph.setNode(node);
+
+      upsertSet(hierarchyChildren, parent, node);
+      hierarchyParent.set(node, parent);
+    },
+    getParent(node: string): string {
+      return hierarchyParent.get(node) || ROOT_NODE;
+    },
+    removeHierarchyNode(node: string) {
+      if (node === ROOT_NODE) {
+        return;
+      }
+      const parent = graph.getParent(node);
+      hierarchyParent.delete(node);
+      for (const child of graph.getChildren(node)) {
+        graph.setParent(child, ROOT_NODE);
+      }
+      const childSet = hierarchyChildren.get(parent);
+      childSet?.delete(node);
+    },
+    getChildren(node: string = ROOT_NODE): string[] {
+      return Array.from(hierarchyChildren.get(node) || []);
+    },
+  };
+
+  return graph;
 }
 
 function edgeToString(from: string, to: string) {
