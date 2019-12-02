@@ -1,18 +1,16 @@
-import { createGraph, IDirectedGraph } from '../graph';
-
-const getEvents = () => ({
-  onAddNode: jest.fn(),
-  onRemoveNode: jest.fn(),
-});
+import {
+  createGraph,
+  IDirectedGraph,
+  ROOT_NODE,
+  createCompoundGraph,
+  ICompoundGraph,
+} from '../graph';
 
 describe('Graph', () => {
-  let events = getEvents();
   let digraph: IDirectedGraph<unknown, unknown>;
 
   beforeEach(() => {
-    events = getEvents();
     digraph = createGraph({
-      events,
       directed: true,
     });
   });
@@ -20,8 +18,6 @@ describe('Graph', () => {
   it('should have a correct initial state', function() {
     expect(digraph.nodesCount()).toBe(0);
     expect(digraph.edgesCount()).toBe(0);
-    expect(events.onAddNode.mock.calls.length).toBe(0);
-    expect(events.onRemoveNode.mock.calls.length).toBe(0);
   });
 
   describe('nodes', () => {
@@ -67,14 +63,12 @@ describe('Graph', () => {
       expect(digraph.hasNode('a')).toBe(true);
       expect(digraph.getNodeValue('a')).toBeUndefined();
       expect(digraph.nodesCount()).toBe(1);
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it('should can set a value for the node', () => {
       digraph.setNode('a', 'foo');
 
       expect(digraph.getNodeValue('a')).toBe('foo');
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it("should does not change the node's value with a 1-arg invocation", () => {
@@ -82,14 +76,12 @@ describe('Graph', () => {
       digraph.setNode('a');
 
       expect(digraph.getNodeValue('a')).toBe('foo');
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it("should can remove the node's value by passing undefined", () => {
       digraph.setNode('a', undefined);
 
       expect(digraph.getNodeValue('a')).toBeUndefined();
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it('should filter idempotent nodes', () => {
@@ -98,7 +90,6 @@ describe('Graph', () => {
 
       expect(digraph.getNodeValue('a')).toBe('foo');
       expect(digraph.nodesCount()).toBe(1);
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
   });
 
@@ -150,7 +141,6 @@ describe('Graph', () => {
 
       expect(digraph.hasNode('a')).toBe(false);
       expect(digraph.nodesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(0);
     });
 
     it('should remove the node if it is in the graph', () => {
@@ -159,7 +149,6 @@ describe('Graph', () => {
 
       expect(digraph.hasNode('a')).toBe(false);
       expect(digraph.nodesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
 
     it('should is idempotent', () => {
@@ -169,7 +158,6 @@ describe('Graph', () => {
 
       expect(digraph.hasNode('a')).toBe(false);
       expect(digraph.nodesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
 
     it('should remove edges incident on the node', () => {
@@ -178,7 +166,6 @@ describe('Graph', () => {
       digraph.removeNode('b');
 
       expect(digraph.edgesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
   });
 
@@ -305,7 +292,6 @@ describe('Graph', () => {
 
     it('should handle undirected graph edges', () => {
       const graph = createGraph({
-        events,
         directed: false,
       });
 
@@ -335,7 +321,6 @@ describe('Graph', () => {
 
     it('should return an edge in either direction in an undirected graph', function() {
       const graph = createGraph({
-        events,
         directed: false,
       });
 
@@ -374,7 +359,6 @@ describe('Graph', () => {
 
     it('should works with undirected graphs', () => {
       const graph = createGraph({
-        events,
         directed: false,
       });
 
@@ -408,7 +392,6 @@ describe('Graph', () => {
 
     it('should works with undirected graphs', () => {
       const graph = createGraph({
-        events,
         directed: false,
       });
 
@@ -419,6 +402,142 @@ describe('Graph', () => {
       });
       expect(graph.neighbors('g')).toEqual([]);
       expect(graph.neighbors('h')).toEqual([]);
+    });
+  });
+});
+
+describe('CompoundGraph', () => {
+  let compoundDigraph: ICompoundGraph & IDirectedGraph<unknown, unknown>;
+
+  beforeEach(() => {
+    compoundDigraph = createCompoundGraph({
+      directed: true,
+    });
+  });
+
+  it('should includes subgraphs', function() {
+    compoundDigraph.setParent('a', 'parent');
+
+    expect(compoundDigraph.getParent('a')).toEqual('parent');
+  });
+
+  it('should includes multi-level subgraphs', function() {
+    compoundDigraph.setParent('a', 'parent');
+    compoundDigraph.setParent('parent', 'root');
+
+    expect(compoundDigraph.getParent('a')).toEqual('parent');
+    expect(compoundDigraph.getParent('parent')).toEqual('root');
+  });
+
+  describe('removeHierarchyNode', () => {
+    it('should remove parent / child relationships for the node', () => {
+      compoundDigraph.setParent('c', 'b');
+      compoundDigraph.setParent('b', 'a');
+
+      compoundDigraph.removeHierarchyNode('b');
+
+      expect(compoundDigraph.getParent('b')).toBe(ROOT_NODE);
+      expect(compoundDigraph.getChildren('b')).toEqual([]);
+      expect(compoundDigraph.getChildren('a')).toEqual(
+        expect.not.arrayContaining(['b'])
+      );
+      expect(compoundDigraph.getParent('c')).toBe(ROOT_NODE);
+    });
+  });
+
+  describe('setParent', () => {
+    it('should create the parent if it does not exist', () => {
+      compoundDigraph.setNode('a');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.hasNode('parent')).toBe(true);
+      expect(compoundDigraph.getParent('a')).toBe('parent');
+    });
+
+    it('should create the child if it does not exist', () => {
+      compoundDigraph.setNode('parent');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.hasNode('a')).toBe(true);
+      expect(compoundDigraph.getParent('a')).toBe('parent');
+    });
+
+    it('should has the parent as ROOT_NODE constant if it has never been invoked', () => {
+      compoundDigraph.setNode('a');
+      expect(compoundDigraph.getParent('a')).toBe(ROOT_NODE);
+    });
+
+    it('should move the node from the previous parent', () => {
+      compoundDigraph.setParent('a', 'parent');
+      compoundDigraph.setParent('a', 'parent2');
+
+      expect(compoundDigraph.getParent('a')).toBe('parent2');
+      expect(compoundDigraph.getChildren('parent')).toEqual([]);
+      expect(compoundDigraph.getChildren('parent2')).toEqual(['a']);
+    });
+  });
+
+  describe('getParent', function() {
+    it('should return ROOT_NODE if the graph is not compound', function() {
+      expect(compoundDigraph.getParent('a')).toEqual(ROOT_NODE);
+    });
+
+    it('should return ROOT_NODE if the node is not in the graph', function() {
+      expect(compoundDigraph.getParent('a')).toEqual(ROOT_NODE);
+    });
+
+    it('should default to ROOT_NODE for new nodes', function() {
+      compoundDigraph.setNode('a');
+      expect(compoundDigraph.getParent('a')).toEqual(ROOT_NODE);
+    });
+
+    it('should returns the current parent assignment', function() {
+      compoundDigraph.setNode('a');
+      compoundDigraph.setNode('parent');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.getParent('a')).toBe('parent');
+    });
+  });
+
+  describe('getChildren', () => {
+    it('should return undefined if the node is not in the graph', () => {
+      expect(compoundDigraph.getChildren('a')).toEqual([]);
+    });
+
+    it('should default to en empty list for new nodes', () => {
+      compoundDigraph.setNode('a');
+      expect(compoundDigraph.getChildren('a')).toEqual([]);
+    });
+
+    it('should return undefined for a non-compound graph without the node', () => {
+      expect(compoundDigraph.getChildren('a')).toEqual([]);
+    });
+
+    it('should return children for the node', () => {
+      compoundDigraph.setParent('a', 'parent');
+      compoundDigraph.setParent('b', 'parent');
+      expect(compoundDigraph.getChildren('parent').sort()).toEqual(['a', 'b']);
+    });
+
+    // TODO: fix
+    test.skip('should return all nodes without a parent when the parent is not set', () => {
+      compoundDigraph.setNode('a');
+      compoundDigraph.setNode('b');
+      compoundDigraph.setNode('c');
+      compoundDigraph.setNode('parent');
+      compoundDigraph.setParent('a', 'parent');
+
+      expect(compoundDigraph.getChildren().sort()).toEqual([
+        'b',
+        'c',
+        'parent',
+      ]);
+      expect(compoundDigraph.getChildren(undefined).sort()).toEqual([
+        'b',
+        'c',
+        'parent',
+      ]);
     });
   });
 });
