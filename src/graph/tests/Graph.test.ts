@@ -1,18 +1,10 @@
 import { createGraph, IDirectedGraph } from '../graph';
 
-const getEvents = () => ({
-  onAddNode: jest.fn(),
-  onRemoveNode: jest.fn(),
-});
-
 describe('Graph', () => {
-  let events = getEvents();
   let digraph: IDirectedGraph<unknown, unknown>;
 
   beforeEach(() => {
-    events = getEvents();
     digraph = createGraph({
-      events,
       directed: true,
     });
   });
@@ -20,8 +12,6 @@ describe('Graph', () => {
   it('should have a correct initial state', function() {
     expect(digraph.nodesCount()).toBe(0);
     expect(digraph.edgesCount()).toBe(0);
-    expect(events.onAddNode.mock.calls.length).toBe(0);
-    expect(events.onRemoveNode.mock.calls.length).toBe(0);
   });
 
   describe('nodes', () => {
@@ -67,14 +57,12 @@ describe('Graph', () => {
       expect(digraph.hasNode('a')).toBe(true);
       expect(digraph.getNodeValue('a')).toBeUndefined();
       expect(digraph.nodesCount()).toBe(1);
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it('should can set a value for the node', () => {
       digraph.setNode('a', 'foo');
 
       expect(digraph.getNodeValue('a')).toBe('foo');
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it("should does not change the node's value with a 1-arg invocation", () => {
@@ -82,14 +70,12 @@ describe('Graph', () => {
       digraph.setNode('a');
 
       expect(digraph.getNodeValue('a')).toBe('foo');
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it("should can remove the node's value by passing undefined", () => {
       digraph.setNode('a', undefined);
 
       expect(digraph.getNodeValue('a')).toBeUndefined();
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
 
     it('should filter idempotent nodes', () => {
@@ -98,7 +84,6 @@ describe('Graph', () => {
 
       expect(digraph.getNodeValue('a')).toBe('foo');
       expect(digraph.nodesCount()).toBe(1);
-      expect(events.onAddNode.mock.calls.length).toBe(1);
     });
   });
 
@@ -150,7 +135,6 @@ describe('Graph', () => {
 
       expect(digraph.hasNode('a')).toBe(false);
       expect(digraph.nodesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(0);
     });
 
     it('should remove the node if it is in the graph', () => {
@@ -159,7 +143,6 @@ describe('Graph', () => {
 
       expect(digraph.hasNode('a')).toBe(false);
       expect(digraph.nodesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
 
     it('should is idempotent', () => {
@@ -169,7 +152,6 @@ describe('Graph', () => {
 
       expect(digraph.hasNode('a')).toBe(false);
       expect(digraph.nodesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
 
     it('should remove edges incident on the node', () => {
@@ -178,7 +160,6 @@ describe('Graph', () => {
       digraph.removeNode('b');
 
       expect(digraph.edgesCount()).toBe(0);
-      expect(events.onRemoveNode.mock.calls.length).toBe(1);
     });
   });
 
@@ -305,7 +286,6 @@ describe('Graph', () => {
 
     it('should handle undirected graph edges', () => {
       const graph = createGraph({
-        events,
         directed: false,
       });
 
@@ -335,7 +315,6 @@ describe('Graph', () => {
 
     it('should return an edge in either direction in an undirected graph', function() {
       const graph = createGraph({
-        events,
         directed: false,
       });
 
@@ -374,7 +353,6 @@ describe('Graph', () => {
 
     it('should works with undirected graphs', () => {
       const graph = createGraph({
-        events,
         directed: false,
       });
 
@@ -408,7 +386,6 @@ describe('Graph', () => {
 
     it('should works with undirected graphs', () => {
       const graph = createGraph({
-        events,
         directed: false,
       });
 

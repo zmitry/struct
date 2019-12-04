@@ -1,8 +1,11 @@
 import { toDot } from '../dot';
-import { createCompoundGraph } from '../index';
+import { createGraph } from '../index';
 
 function setup() {
-  const g = createCompoundGraph<any, any>('digraph');
+  const g = createGraph<any, any>({
+    compound: true,
+    directed: true,
+  });
   g.setNode('1');
   g.setNode('2', { color: 'red' });
   g.setEdge('1', '2');
@@ -15,7 +18,9 @@ function setup() {
 describe('dot converted', () => {
   it('compound', () => {
     const { graph } = setup();
-    expect(toDot(graph, { intend: '  ', compound: true })).toMatchSnapshot();
+    expect(
+      toDot(graph, { intend: '  ', compound: true, directed: true })
+    ).toMatchSnapshot();
   });
 
   it('basic', () => {

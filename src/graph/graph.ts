@@ -1,9 +1,9 @@
 import { Optional } from 'utility-types';
 
 import { upsertSet, mapUnique } from './helpers';
+import { createHierarchy, IHierarchy } from './compound-graph';
 
 //#region types
-export const meta = Symbol();
 interface IBaseGraphApi<N, E> {
   /**
    * get list of all edges
@@ -54,9 +54,6 @@ export interface IUndirectedGraph<N, E> extends IBaseGraphApi<N, E> {
    * list of nodes without  edges
    */
   orphans(node: string): string[];
-  [meta]?: {
-    directed: boolean;
-  };
 }
 // type for basic graph implementation
 export interface IDirectedGraph<N, E> extends IUndirectedGraph<N, E> {
@@ -77,9 +74,6 @@ export interface IDirectedGraph<N, E> extends IUndirectedGraph<N, E> {
    * list of outgoing edges for particular node
    */
   successors(node: string): string[];
-  [meta]?: {
-    directed: boolean;
-  };
 }
 
 type GraphEdge<T> = { to: string; from: string; value?: T };
@@ -88,6 +82,11 @@ type Events = {
   onAddNode?: (k: string) => void;
   onRemoveNode?: (k: string) => void;
 };
+
+type ICompoundGraphApi = Pick<
+  IHierarchy,
+  'getChildren' | 'getParent' | 'setParent'
+>;
 //#endregion
 
 function createBaseGraph<N, E>(events: Events) {
@@ -200,26 +199,41 @@ function createBaseGraph<N, E>(events: Events) {
   return graph;
 }
 
+export type GraphReturn<N, E> =
+  | IDirectedGraph<N, E>
+  | IUndirectedGraph<N, E>
+  | (IUndirectedGraph<N, E> & ICompoundGraphApi)
+  | (IUndirectedGraph<N, E> & ICompoundGraphApi);
+
 export function createGraph<N, E>(arg: {
-  events: Events;
   directed: true;
 }): IDirectedGraph<N, E>;
 export function createGraph<N, E>(arg: {
-  events: Events;
   directed: false;
 }): IUndirectedGraph<N, E>;
+export function createGraph<N, E>(arg: {
+  directed?: false;
+  compound: true;
+}): IUndirectedGraph<N, E> & ICompoundGraphApi;
+export function createGraph<N, E>(arg: {
+  directed: true;
+  compound: true;
+}): IUndirectedGraph<N, E> & ICompoundGraphApi;
 
 export function createGraph<N, E>({
-  events = {},
   directed,
+  compound,
 }: {
   directed?: boolean;
-
-  events?: Events;
-}): IDirectedGraph<N, E> {
+  compound?: boolean;
+}): GraphReturn<N, E> {
   const inNodes = new Map<string, Set<string>>();
   const outNodes = new Map<string, Set<string>>();
-  const base = createBaseGraph<N, E>(events);
+  const hierarchy = createHierarchy();
+  const base = createBaseGraph<N, E>({
+    onAddNode: hierarchy.setParent,
+    onRemoveNode: hierarchy.removeHierarchyNode,
+  });
   function reorderEdge<T>(from: string, to: string, value?: T) {
     if (!directed && from < to) {
       let tmp = from;
@@ -228,7 +242,7 @@ export function createGraph<N, E>({
     }
     return { from, to, value };
   }
-  const graph: IUndirectedGraph<N, E> = {
+  const graph = {
     getNodeValue: base.getNodeValue,
     setNode: base.setNode,
     hasNode: base.hasNode,
@@ -287,24 +301,44 @@ export function createGraph<N, E>({
     orphans() {
       return base.filterNodes(k => !inNodes.has(k) && !outNodes.has(k));
     },
+    predecessors(n: string) {
+      return Array.from(inNodes.get(n)?.values() || []);
+    },
+    successors(n: string) {
+      return Array.from(outNodes.get(n)?.values() || []);
+    },
+    sources() {
+      return base.filterNodes(k => !inNodes.has(k));
+    },
+    sinks() {
+      return base.filterNodes(k => !outNodes.has(k));
+    },
   };
-  if (directed) {
-    Object.assign(graph, {
-      predecessors(n: string) {
-        return mapUnique(Array.from(inNodes.get(n)?.values() || []));
-      },
-      successors(n: string) {
-        return mapUnique(Array.from(outNodes.get(n)?.values() || []));
-      },
-      sources() {
-        return base.filterNodes(k => !inNodes.has(k));
-      },
-      sinks() {
-        return base.filterNodes(k => !outNodes.has(k));
-      },
-    } as Partial<IDirectedGraph<N, E>>);
+  const compoundApi = {
+    getChildren: hierarchy.getChildren,
+    setParent: (node, parent) => {
+      if (!base.hasNode(node)) {
+        base.setNode(node);
+      }
+      if (parent && !base.hasNode(parent)) {
+        base.setNode(parent);
+      }
+      return hierarchy.setParent(node, parent);
+    },
+    getParent: hierarchy.getParent,
+  } as ICompoundGraphApi;
+
+  if (directed && compound) {
+    return Object.assign(graph, compoundApi) as IDirectedGraph<N, E> &
+      ICompoundGraphApi;
+  } else if (compound) {
+    return Object.assign(graph, compoundApi) as IUndirectedGraph<N, E> &
+      ICompoundGraphApi;
+  } else if (directed) {
+    return Object.assign(graph) as IDirectedGraph<N, E>;
+  } else {
+    return graph as IUndirectedGraph<N, E>;
   }
-  return graph as IDirectedGraph<N, E>;
 }
 
 function edgeToString(from: string, to: string) {
